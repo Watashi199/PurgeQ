@@ -1,0 +1,22 @@
+# Development override for Docker Compose
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    volumes:
+      - ./api:/app/api
+      - ./migrations:/app/migrations
+    environment:
+      - DEBUG=true
+      - DB_ECHO=true
+    command: uvicorn api.app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  postgres:
+    environment:
+      - POSTGRES_INITDB_ARGS=-c log_statement=all -c log_duration=on
+
+  redis:
+    command: redis-server --appendonly yes --appendfsync everysec
