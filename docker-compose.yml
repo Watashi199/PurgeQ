@@ -59,10 +59,16 @@ services:
         python -c '
 import time
 import psycopg2
+import os
 conn = None
 while not conn:
     try:
-        conn = psycopg2.connect(host=\"postgres\", dbname=\"${DB_NAME:-purgeq}\", user=\"${DB_USER:-postgres}\", password=\"${DB_PASSWORD:-postgres}\")
+        conn = psycopg2.connect(
+            host=\"postgres\",
+            dbname=os.environ.get(\"DB_NAME\", \"purgeq\"),
+            user=os.environ.get(\"DB_USER\", \"postgres\"),
+            password=os.environ.get(\"DB_PASSWORD\", \"postgres\")
+        )
     except:
         time.sleep(1)
 print(\"Database is available!\")
