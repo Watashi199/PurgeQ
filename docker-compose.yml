@@ -56,10 +56,20 @@ services:
     command: >
       sh -c "
         echo 'Waiting for database...' &&
-        python -c 'import time; import psycopg2; conn = None; 
-        while not conn:
-          try: conn = psycopg2.connect(host=\"postgres\", dbname=\"${DB_NAME:-purgeq}\", user=\"${DB_USER:-postgres}\", password=\"${DB_PASSWORD:-postgres}\")
-          except: time.sleep(1)' &&
+        python -c '
+import time
+import psycopg2
+conn = None
+while not conn:
+    try:
+        conn = psycopg2.connect(host=\"postgres\", dbname=\"${DB_NAME:-purgeq}\", user=\"${DB_USER:-postgres}\", password=\"${DB_PASSWORD:-postgres}\")
+    except:
+        time.sleep(1)
+print(\"Database is available!\")
+        ' &&
+        echo 'Running migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting API...' &&
         uvicorn api.app.main:app --host 0.0.0.0 --port 8000 --reload
       "
     networks:
