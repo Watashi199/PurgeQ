@@ -10,7 +10,8 @@
   ],
   "host_permissions": [
     "https://www.faceit.com/*",
-    "https://api.example.com/*"
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
   ],
   "background": {
     "service_worker": "background.js",

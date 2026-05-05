@@ -4,7 +4,7 @@
 
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { getBanlist, BanlistItem } from '../shared/utils';
+import { API_BASE_URL, getBanlist, BanlistItem } from '../shared/utils';
 
 interface BanlistItem {
   id: string;
@@ -67,11 +67,11 @@ const PopupApp: React.FC = () => {
 
     try {
       setLoading(true);
-      const response = await fetch('https://api.example.com/api/v1/ban', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/ban`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-API-Key': 'your-api-key', // Should be from settings
+          'X-API-Key': 'your-api-key', // Update this to a valid API key
         },
         body: JSON.stringify(newBan),
       });
@@ -97,7 +97,7 @@ const PopupApp: React.FC = () => {
     if (!window.confirm(`Remove ${faceitName} from banlist?`)) return;
 
     try {
-      const response = await fetch(`https://api.example.com/api/v1/ban/${faceitName}`, {
+      const response = await fetch(`${API_BASE_URL}/api/v1/ban/${faceitName}`, {
         method: 'DELETE',
         headers: {
           'X-API-Key': 'your-api-key',
