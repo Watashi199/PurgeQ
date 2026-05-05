@@ -3,26 +3,44 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import fs from 'fs';
 
-function copyManifest() {
+function copyStaticAssets() {
   return {
-    name: 'copy-manifest',
+    name: 'copy-assets',
     closeBundle() {
       const outDir = path.resolve(__dirname, 'dist');
       const manifestSrc = path.resolve(__dirname, 'manifest.json');
       const manifestDest = path.resolve(outDir, 'manifest.json');
+      const imagesSrc = path.resolve(__dirname, 'src/images');
+      const imagesDest = path.resolve(outDir, 'images');
 
       if (!fs.existsSync(outDir)) {
         fs.mkdirSync(outDir, { recursive: true });
       }
 
+      // Copy manifest
       fs.copyFileSync(manifestSrc, manifestDest);
+
+      // Copy images if they exist
+      if (fs.existsSync(imagesSrc)) {
+        if (!fs.existsSync(imagesDest)) {
+          fs.mkdirSync(imagesDest, { recursive: true });
+        }
+        const files = fs.readdirSync(imagesSrc);
+        files.forEach((file) => {
+          fs.copyFileSync(
+            path.join(imagesSrc, file),
+            path.join(imagesDest, file)
+          );
+        });
+        console.log(`✓ Copied ${files.length} images to dist/images`);
+      }
     },
   };
 }
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [react(), copyManifest()],
+  plugins: [react(), copyStaticAssets()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
