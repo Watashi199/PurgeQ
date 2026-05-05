@@ -2,7 +2,7 @@
  * Shared utilities for extension
  */
 
-export const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://api.example.com';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.47:8000';
 export const CACHE_KEY = 'purgeq_banlist_cache';
 export const CACHE_TTL = 3600000; // 1 hour in ms
 export const REFRESH_INTERVAL = 60000; // 60 seconds in ms
