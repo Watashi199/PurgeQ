@@ -49,10 +49,16 @@ class Settings(BaseSettings):
     def __init__(self, **data):
         """Initialize settings and parse API keys."""
         super().__init__(**data)
+        # Handle VALID_API_KEYS parsing for backward compatibility
         if isinstance(self.VALID_API_KEYS, str):
-            self.VALID_API_KEYS = [
-                key.strip() for key in self.VALID_API_KEYS.split(",") if key.strip()
-            ]
+            # Try to parse as JSON first, then fall back to comma-separated
+            import json
+            try:
+                self.VALID_API_KEYS = json.loads(self.VALID_API_KEYS)
+            except (json.JSONDecodeError, TypeError):
+                self.VALID_API_KEYS = [
+                    key.strip() for key in self.VALID_API_KEYS.split(",") if key.strip()
+                ]
 
 
 @lru_cache()

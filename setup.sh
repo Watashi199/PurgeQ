@@ -50,6 +50,8 @@ echo "Setting up environment..."
 if [ ! -f .env ]; then
     cp .env.example .env
     echo "✓ Created .env from template"
+else
+    echo "⚠️  .env file already exists. If you encounter configuration errors, consider updating it from .env.example"
 fi
 
 # Install OS-level build dependencies if apt is available
