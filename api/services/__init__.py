@@ -37,7 +37,8 @@ class BanlistService:
         # Try to get from cache
         cached = await get_cache("banlist:all")
         if cached:
-            return [BanlistItemResponse(**item) for item in cached]
+            # Cache returns already-parsed data, validate it
+            return [BanlistItemResponse.model_validate(item) for item in cached]
 
         # Query database
         result = await self.db.execute(select(BanlistItem).order_by(BanlistItem.created_at.desc()))
@@ -46,8 +47,8 @@ class BanlistService:
         # Convert to response schema
         responses = [BanlistItemResponse.model_validate(item) for item in items]
 
-        # Cache the result
-        await set_cache("banlist:all", [item.model_dump() for item in responses])
+        # Cache the result - use model_dump with mode='json' for proper serialization
+        await set_cache("banlist:all", [item.model_dump(mode='json') for item in responses])
 
         return responses
 
