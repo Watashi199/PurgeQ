@@ -16,6 +16,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY api/ ./api
 COPY migrations/ ./migrations
+COPY docker/start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
