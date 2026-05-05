@@ -2,8 +2,7 @@
 import json
 from typing import Any, Optional
 
-import aioredis
-from aioredis import Redis
+from redis.asyncio import Redis
 
 from .config import get_settings
 
@@ -16,7 +15,7 @@ async def get_redis_client() -> Redis:
     """Get or create Redis client."""
     global _redis_client
     if _redis_client is None:
-        _redis_client = await aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        _redis_client = Redis.from_url(settings.REDIS_URL, decode_responses=True)
     return _redis_client
 
 

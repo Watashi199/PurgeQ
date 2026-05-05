@@ -1,8 +1,7 @@
 """Rate limiting using Redis."""
 from typing import Optional
 
-import aioredis
-from aioredis import Redis
+from redis.asyncio import Redis
 
 from .config import get_settings
 from .exceptions import RateLimitException
@@ -24,7 +23,7 @@ async def check_rate_limit(identifier: str, redis: Optional[Redis] = None) -> bo
         RateLimitException: If rate limit exceeded
     """
     if redis is None:
-        redis = await aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        redis = Redis.from_url(settings.REDIS_URL, decode_responses=True)
 
     key = f"ratelimit:{identifier}"
 
