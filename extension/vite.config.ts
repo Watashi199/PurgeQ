@@ -10,6 +10,10 @@ function copyStaticAssets() {
       const outDir = path.resolve(__dirname, 'dist');
       const manifestSrc = path.resolve(__dirname, 'manifest.json');
       const manifestDest = path.resolve(outDir, 'manifest.json');
+      const popupHtmlSrc = path.resolve(__dirname, 'src/popup/popup.html');
+      const popupHtmlDest = path.resolve(outDir, 'popup.html');
+      const popupCssSrc = path.resolve(__dirname, 'src/popup/popup.css');
+      const popupCssDest = path.resolve(outDir, 'popup.css');
       const imagesSrc = path.resolve(__dirname, 'src/images');
       const imagesDest = path.resolve(outDir, 'images');
 
@@ -19,6 +23,18 @@ function copyStaticAssets() {
 
       // Copy manifest
       fs.copyFileSync(manifestSrc, manifestDest);
+
+      // Copy popup HTML
+      if (fs.existsSync(popupHtmlSrc)) {
+        fs.copyFileSync(popupHtmlSrc, popupHtmlDest);
+        console.log('✓ Copied popup.html');
+      }
+
+      // Copy popup CSS
+      if (fs.existsSync(popupCssSrc)) {
+        fs.copyFileSync(popupCssSrc, popupCssDest);
+        console.log('✓ Copied popup.css');
+      }
 
       // Copy images if they exist
       if (fs.existsSync(imagesSrc)) {
