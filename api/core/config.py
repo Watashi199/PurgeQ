@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     AUTHOR_MIN_LENGTH: int = 2
     AUTHOR_MAX_LENGTH: int = 32
 
+    # Extension
+    REACT_APP_API_URL: str = "http://localhost:8000"
+
     class Config:
         """Pydantic config."""
 
