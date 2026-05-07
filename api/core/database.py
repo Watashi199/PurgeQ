@@ -4,10 +4,10 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     AsyncEngine,
+    async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.pool import NullPool
+from sqlalchemy.orm import declarative_base
 
 from .config import get_settings
 
@@ -23,7 +23,6 @@ def create_engine() -> AsyncEngine:
         settings.DATABASE_URL,
         echo=settings.DB_ECHO,
         future=True,
-        poolclass=NullPool,
         pool_pre_ping=True,
     )
 
@@ -31,9 +30,8 @@ def create_engine() -> AsyncEngine:
 engine = create_engine()
 
 # Session factory
-async_session_maker = sessionmaker(
+async_session_maker = async_sessionmaker(
     engine,
-    class_=AsyncSession,
     expire_on_commit=False,
     autoflush=False,
 )

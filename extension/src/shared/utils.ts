@@ -2,7 +2,8 @@
  * Shared utilities for extension
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://192.168.1.47:8000';
+import { getSettings } from './settings';
+
 export const CACHE_KEY = 'purgeq_banlist_cache';
 export const CACHE_TTL = 3600000; // 1 hour in ms
 export const REFRESH_INTERVAL = 60000; // 60 seconds in ms
@@ -21,6 +22,16 @@ export interface CachedBanlist {
   data: Map<string, BanlistItem>;
 }
 
+export async function getApiBaseUrl(): Promise<string> {
+  const { apiUrl } = await getSettings();
+  return apiUrl;
+}
+
+export async function getApiKey(): Promise<string> {
+  const { apiKey } = await getSettings();
+  return apiKey;
+}
+
 /**
  * Get cached banlist or fetch from API
  */
@@ -32,7 +43,8 @@ export async function getBanlist(): Promise<Map<string, BanlistItem>> {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/v1/banlist`);
+    const apiUrl = await getApiBaseUrl();
+    const response = await fetch(`${apiUrl}/api/v1/banlist`);
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const data = await response.json();
@@ -42,7 +54,6 @@ export async function getBanlist(): Promise<Map<string, BanlistItem>> {
       banlistMap.set(item.faceit_name.toLowerCase(), item);
     });
 
-    // Cache the result
     await setCachedBanlist({
       timestamp: Date.now(),
       data: Object.fromEntries(banlistMap),
@@ -51,15 +62,11 @@ export async function getBanlist(): Promise<Map<string, BanlistItem>> {
     return banlistMap;
   } catch (error) {
     console.error('Failed to fetch banlist:', error);
-    // Return cached data as fallback
     const fallback = await getCachedBanlist();
     return fallback ? fallback.data : new Map();
   }
 }
 
-/**
- * Check if player is banned
- */
 export function isPlayerBanned(
   playerName: string,
   banlist: Map<string, BanlistItem>
@@ -68,9 +75,6 @@ export function isPlayerBanned(
   return banlist.get(key) || null;
 }
 
-/**
- * Get cached banlist from storage
- */
 export async function getCachedBanlist(): Promise<CachedBanlist | null> {
   try {
     const stored = await chrome.storage.local.get(CACHE_KEY);
@@ -87,9 +91,6 @@ export async function getCachedBanlist(): Promise<CachedBanlist | null> {
   }
 }
 
-/**
- * Store banlist in cache
- */
 export async function setCachedBanlist(cached: {
   timestamp: number;
   data: Record<string, BanlistItem>;
@@ -101,16 +102,18 @@ export async function setCachedBanlist(cached: {
   }
 }
 
-/**
- * Check if cache is expired
- */
+export async function clearBanlistCache(): Promise<void> {
+  try {
+    await chrome.storage.local.remove(CACHE_KEY);
+  } catch (error) {
+    console.error('Failed to clear cache:', error);
+  }
+}
+
 export function isCacheExpired(cached: CachedBanlist): boolean {
   return Date.now() - cached.timestamp > CACHE_TTL;
 }
 
-/**
- * Format date for display
- */
 export function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {

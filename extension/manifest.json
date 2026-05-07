@@ -5,12 +5,14 @@
   "description": "Real-time FACEIT player banlist checker with offline support",
   "permissions": [
     "storage",
-    "alarms",
-    "webRequest"
+    "alarms"
   ],
   "host_permissions": [
-    "https://www.faceit.com/*",
-    "http://192.168.1.47:8000/*"
+    "https://www.faceit.com/*"
+  ],
+  "optional_host_permissions": [
+    "http://*/*",
+    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -20,8 +22,7 @@
     {
       "matches": ["https://www.faceit.com/*"],
       "js": ["content.js"],
-      "run_at": "document_end",
-      "type": "module"
+      "run_at": "document_end"
     }
   ],
   "action": {

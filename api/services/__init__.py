@@ -165,6 +165,8 @@ class BanlistService:
             await invalidate_banlist_cache()
 
             return BanlistItemResponse.model_validate(db_item)
+        except BanlistItemNotFound:
+            raise
         except Exception as e:
             await self.db.rollback()
             raise DatabaseException(f"Failed to update banlist item: {str(e)}")

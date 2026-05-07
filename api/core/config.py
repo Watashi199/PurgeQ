@@ -1,13 +1,19 @@
 """Application configuration."""
-import os
+import json
 from functools import lru_cache
-from typing import Optional
 
-from pydantic_settings import BaseSettings
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings from environment variables."""
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore",
+    )
 
     # API
     API_V1_STR: str = "/api/v1"
@@ -27,7 +33,7 @@ class Settings(BaseSettings):
 
     # API Key
     API_KEY_HEADER: str = "X-API-Key"
-    VALID_API_KEYS: list[str] = []  # Will be set from env
+    VALID_API_KEYS: list[str] = []
 
     # CORS
     ALLOWED_ORIGINS: list[str] = ["*"]
@@ -43,25 +49,24 @@ class Settings(BaseSettings):
     # Extension
     REACT_APP_API_URL: str = "http://localhost:8000"
 
-    class Config:
-        """Pydantic config."""
-
-        env_file = ".env"
-        case_sensitive = True
-
-    def __init__(self, **data):
-        """Initialize settings and parse API keys."""
-        super().__init__(**data)
-        # Handle VALID_API_KEYS parsing for backward compatibility
-        if isinstance(self.VALID_API_KEYS, str):
-            # Try to parse as JSON first, then fall back to comma-separated
-            import json
+    @field_validator("VALID_API_KEYS", "ALLOWED_ORIGINS", mode="before")
+    @classmethod
+    def _parse_list(cls, value):
+        """Accept either JSON list or comma-separated string."""
+        if value is None or isinstance(value, list):
+            return value
+        if isinstance(value, str):
+            stripped = value.strip()
+            if not stripped:
+                return []
             try:
-                self.VALID_API_KEYS = json.loads(self.VALID_API_KEYS)
-            except (json.JSONDecodeError, TypeError):
-                self.VALID_API_KEYS = [
-                    key.strip() for key in self.VALID_API_KEYS.split(",") if key.strip()
-                ]
+                parsed = json.loads(stripped)
+                if isinstance(parsed, list):
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            return [item.strip() for item in stripped.split(",") if item.strip()]
+        return value
 
 
 @lru_cache()

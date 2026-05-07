@@ -2,7 +2,8 @@
  * Background service worker for PurgeQ extension
  */
 
-import { getBanlist, REFRESH_INTERVAL } from '../shared/utils';
+import { getApiBaseUrl, getBanlist, REFRESH_INTERVAL } from '../shared/utils';
+import { hasApiHostPermission } from '../shared/settings';
 
 // Initialize extension on install
 chrome.runtime.onInstalled.addListener(() => {
@@ -38,6 +39,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
  */
 async function refreshBanlist() {
   try {
+    const apiUrl = await getApiBaseUrl();
+    const allowed = await hasApiHostPermission(apiUrl);
+    if (!allowed) {
+      console.log(
+        `Skipping refresh: no host permission for ${apiUrl}. Open the popup to grant it.`
+      );
+      return;
+    }
+
     console.log('Refreshing banlist...');
     await getBanlist();
     console.log('Banlist refreshed successfully');

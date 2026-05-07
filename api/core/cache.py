@@ -23,7 +23,7 @@ async def close_redis_client() -> None:
     """Close Redis client."""
     global _redis_client
     if _redis_client:
-        await _redis_client.close()
+        await _redis_client.aclose()
         _redis_client = None
 
 
