@@ -200,6 +200,89 @@ const PopupApp: React.FC = () => {
     }
   }
 
+  async function handleImportFile(file: File) {
+    const apiKey = await getApiKey();
+    if (!apiKey) {
+      setError('API key is not set. Open settings to configure it.');
+      return;
+    }
+
+    const apiUrl = await getApiBaseUrl();
+    const author = settings.defaultAuthor.trim();
+    if (!author) {
+      setError('Set a Default author in Settings before importing.');
+      return;
+    }
+
+    let body: string;
+    let contentType: string;
+    const lower = file.name.toLowerCase();
+    const text = await file.text();
+
+    if (lower.endsWith('.csv')) {
+      body = text;
+      contentType = 'text/csv';
+    } else {
+      // JSON: accept either {items: [...]} or a bare array of strings/objects.
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        setError('Could not parse the JSON file');
+        return;
+      }
+      const items = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray((parsed as { items?: unknown }).items)
+          ? (parsed as { items: unknown[] }).items
+          : null;
+      if (!items) {
+        setError('JSON must be an array of names/objects, or {items: [...]}');
+        return;
+      }
+      body = JSON.stringify({
+        items,
+        default_author: author,
+        default_reason: 'Imported',
+      });
+      contentType = 'application/json';
+    }
+
+    try {
+      setLoading(true);
+      const url = new URL(`${apiUrl}/api/v1/banlist/import`);
+      if (contentType === 'text/csv') {
+        url.searchParams.set('author', author);
+      }
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: { 'Content-Type': contentType, 'X-API-Key': apiKey },
+        body,
+      });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const summary = (await response.json()) as {
+        imported: number;
+        skipped: string[];
+        failed: { input: string; reason: string }[];
+      };
+      const parts = [`${summary.imported} imported`];
+      if (summary.skipped.length) parts.push(`${summary.skipped.length} skipped`);
+      if (summary.failed.length) parts.push(`${summary.failed.length} failed`);
+      setSuccess(parts.join(', '));
+      if (summary.failed.length) {
+        console.warn('[PurgeQ] Import failures:', summary.failed);
+      }
+      await clearBanlistCache();
+      await loadBanlist();
+    } catch (err) {
+      setError(`Import failed: ${err}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSaveSettings(e: React.FormEvent) {
     e.preventDefault();
     try {
@@ -365,6 +448,19 @@ const PopupApp: React.FC = () => {
               >
                 🔄 Refresh
               </button>
+              <label className="btn btn-refresh" title="Import a banlist (.json or .csv)">
+                📥 Import
+                <input
+                  type="file"
+                  accept=".json,.csv,.txt"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = '';
+                    if (file) handleImportFile(file);
+                  }}
+                />
+              </label>
             </div>
 
             {loading ? (

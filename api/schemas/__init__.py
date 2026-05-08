@@ -61,3 +61,50 @@ class HealthResponse(BaseModel):
     status: str = Field(default="ok")
     database: str = Field(default="ok")
     cache: str = Field(default="ok")
+
+
+# --- Import ---
+
+# Cap to keep imports cheap and avoid being trivially DoSed.
+IMPORT_MAX_ITEMS = 1000
+
+
+class BanlistImportItem(BaseModel):
+    """A single row in an import payload.
+
+    Permissive on purpose: the per-row validation happens in the service
+    so individual bad rows surface in `failed[]` instead of 422-ing the
+    entire batch.
+    """
+
+    faceit_name: str
+    reason: str | None = None
+    author: str | None = None
+
+
+class BanlistImportRequest(BaseModel):
+    """Bulk-import request body.
+
+    Items can be supplied as objects (with optional reason/author) or as
+    bare strings (just the FACEIT name). Anything missing is filled in
+    from `default_reason` / `default_author`.
+    """
+
+    items: list[BanlistImportItem | str] = Field(default_factory=list)
+    default_reason: str = Field(default="Imported", min_length=1, max_length=250)
+    default_author: str = Field(..., min_length=2, max_length=32)
+
+
+class BanlistImportFailure(BaseModel):
+    """A row we couldn't import, with the original input and a short reason."""
+
+    input: str
+    reason: str
+
+
+class BanlistImportResult(BaseModel):
+    """Per-import summary returned to the caller."""
+
+    imported: int = 0
+    skipped: list[str] = Field(default_factory=list)  # duplicates, by faceit_name
+    failed: list[BanlistImportFailure] = Field(default_factory=list)

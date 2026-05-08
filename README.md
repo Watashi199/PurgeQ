@@ -129,6 +129,7 @@ If you want the deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
 | GET | `/api/v1/banlist` | — | Full list (rate-limited) |
 | POST | `/api/v1/ban` | API key | Add a ban |
 | DELETE | `/api/v1/ban/{name}` | API key | Remove a ban |
+| POST | `/api/v1/banlist/import` | API key | Bulk-import (JSON or CSV) |
 
 `POST /api/v1/ban` body:
 
