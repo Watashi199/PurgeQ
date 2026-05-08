@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+
 # Wait for database
 echo "Waiting for database..."
 while ! PGPASSWORD="$DB_PASSWORD" psql -h postgres -U "$DB_USER" -d "$DB_NAME" -c '\q' 2>/dev/null; do
