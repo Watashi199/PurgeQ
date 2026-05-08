@@ -1,341 +1,208 @@
-# PurgeQ - FACEIT Banlist Platform
+# PurgeQ
 
-A production-ready monorepo containing a FastAPI backend and Chrome/Firefox extension for managing a real-time FACEIT player banlist.
+A FACEIT player banlist platform. Highlight known cheaters/toxic players directly on FACEIT player cards, manage your list from a popup, and share it with your team.
 
-## Features
+Two parts:
 
-### Backend
-- ✅ REST API with async SQLAlchemy ORM
-- ✅ PostgreSQL database with async support
-- ✅ Redis caching and rate limiting
-- ✅ API key authentication
-- ✅ Comprehensive validation with Pydantic v2
-- ✅ OpenAPI/Swagger documentation
-- ✅ Alembic migrations
-- ✅ Complete test suite with pytest
-- ✅ Docker containerization
-- ✅ Health check endpoints
+- **API** — FastAPI backend storing the banlist in Postgres (cached in Redis).
+- **Extension** — Chrome/Firefox extension that overlays a Ban / Unban button on every FACEIT player card, with a popup to manage the full list.
 
-### Extension
-- ✅ Manifest V3 compatible (Chrome, Firefox)
-- ✅ Real-time player detection via MutationObserver
-- ✅ Banned player highlighting with tooltips
-- ✅ Offline support with cached data
-- ✅ Auto-refresh every 60 seconds
-- ✅ React popup UI
-- ✅ O(1) player lookup with Map structure
-- ✅ Dark mode support
+![Screenshot placeholder — banned card with red glow and Unban button under the elo]
 
-## Project Structure
+---
 
-```
-/banlist-platform
-├── api/                      # FastAPI backend
-│   ├── app/                 # Application factory
-│   ├── models/              # SQLAlchemy models
-│   ├── schemas/             # Pydantic schemas
-│   ├── routers/             # API endpoints
-│   ├── services/            # Business logic
-│   └── core/                # Core utilities
-├── extension/               # Chrome/Firefox extension
-│   ├── manifest.json        # Extension manifest
-│   ├── src/
-│   │   ├── content/         # Content script
-│   │   ├── background/      # Service worker
-│   │   ├── popup/           # React popup UI
-│   │   └── shared/          # Shared utilities
-│   └── package.json         # Dependencies
-├── docker/                  # Docker configurations
-├── migrations/              # Alembic migrations
-├── tests/                   # Test suite
-├── .github/workflows/       # CI/CD workflows
-├── pyproject.toml          # Python dependencies
-├── docker-compose.yml      # Docker Compose setup
-└── .env.example            # Environment variables
-```
+## What it does
 
-## Quick Start
+- Detects FACEIT nicknames on any FACEIT page (lobby, match, profile, party).
+- Shows a red glow + green **Unban** button on a player you previously banned, with the reason on hover.
+- Shows a discreet red **Ban** button on hover for clean players, opening an inline form (reason + author).
+- Background sync every 60 s so changes from teammates show up automatically.
+- Works offline: keeps the last banlist cached locally.
 
-### Prerequisites
-- Python 3.12+
-- Node.js 18+
-- Docker & Docker Compose
-- PostgreSQL 16+ (or use Docker Compose)
-- Redis (or use Docker Compose)
+---
 
-### Backend Setup
+## Quick start (self-hosted)
 
-1. **Clone the repository**
+You'll run a small server (Postgres + Redis + the API) and load the extension into your browser. Everything fits on a laptop.
+
+### Requirements
+
+- Docker + Docker Compose
+- A modern Chromium browser (Chrome, Edge, Brave, Opera, etc.) or Firefox
+- Node.js 18+ (only to build the extension once)
+
+### 1. Clone and configure
+
 ```bash
-git clone <repository>
-cd banlist-platform
-```
-
-2. **Copy environment file**
-```bash
+git clone https://github.com/Watashi199/PurgeQ-Renew.git
+cd PurgeQ-Renew
 cp .env.example .env
 ```
 
-3. **Install Python dependencies**
-```bash
-pip install -e ".[dev]"
-# or
-pip install -r requirements.txt
+Open `.env` and **change `VALID_API_KEYS`** to a secret of your choice (this is the password you'll paste into the extension).
+
+```env
+VALID_API_KEYS=["pick-a-long-random-string"]
 ```
 
-4. **Start Docker services**
+### 2. Start the server
+
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
-5. **Run migrations**
-```bash
-alembic upgrade head
-```
+That brings up Postgres, Redis, and the API on `http://localhost:8000`.
+Sanity check: open `http://localhost:8000/docs` — you should see the Swagger UI.
 
-6. **Start development server**
-```bash
-uvicorn api.app.main:app --reload --host 0.0.0.0 --port 8000
-```
+If you want it reachable from your LAN (other devices on your Wi-Fi), note the host's IP (e.g. `http://192.168.1.47:8000`).
 
-Access API at `http://localhost:8000`
-- API Docs: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
+### 3. Build the extension
 
-### Extension Setup
-
-1. **Install dependencies**
 ```bash
 cd extension
 npm install
-```
-
-2. **Build extension**
-```bash
 npm run build
 ```
 
-3. **Load in browser**
-   - **Chrome**: Open `chrome://extensions/` → Enable "Developer mode" → "Load unpacked" → select `dist/` folder
-   - **Firefox**: Open `about:debugging#/runtime/this-firefox` → "Load Temporary Add-on" → select any file from `dist/`
+This produces `extension/dist/`.
 
-## API Endpoints
+### 4. Load it in your browser
 
-### Public Endpoints
-- `GET /` - Root endpoint
-- `GET /health` - Health check
-- `GET /docs` - Swagger documentation
+**Chromium:**
 
-### Banlist Endpoints (Require API Key)
+1. Visit `chrome://extensions/`
+2. Toggle **Developer mode** (top right)
+3. Click **Load unpacked** → pick `extension/dist/`
 
-**Get all banned players:**
+**Firefox:** `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → pick any file inside `extension/dist/`.
+
+### 5. Configure the extension
+
+Open the popup (icon in the toolbar) → ⚙️ Settings:
+
+- **API server URL:** `http://localhost:8000` (or the LAN IP from step 2)
+- **API key:** the one you set in `.env`
+- **Default author:** the name that gets stamped on bans you create from FACEIT cards
+
+Click **Save**. Chrome will prompt for permission to access the URL — accept. Use **Test connection** to verify the server is reachable.
+
+That's it. Open a FACEIT match page; banned players get a red glow with an Unban button, clean players get a Ban button on hover.
+
+---
+
+## Usage tips
+
+- The popup also lets you search, add, and remove bans manually.
+- The **Refresh** button forces a re-fetch (useful if a teammate just added a ban).
+- Bans are case-insensitive on the FACEIT name, so `Watashi-` matches `WATASHI-` and `watashi-`.
+- All your data lives in your Postgres volume (`postgres_data`). To wipe everything: `docker compose down -v`.
+
+---
+
+## Sharing a banlist with friends
+
+Anyone with the same `API server URL` + `API key` sees and edits the same list. So:
+
+1. Decide who hosts the server (one person on a VPS, or someone leaves it on at home with port-forward).
+2. Pick one shared API key.
+3. Distribute that URL + key to your friends.
+4. Each of them configures their extension with those values.
+
+For a public-facing hosted setup with per-user namespaces, see "Hosted version" below.
+
+---
+
+## Architecture in two lines
+
+The extension talks to the API over plain HTTP/HTTPS using `X-API-Key` for write access. The service worker keeps a local cache and pushes updates to content scripts via `chrome.runtime.sendMessage`. The API is stateless; Postgres holds the banlist, Redis the rate-limit counters and a 1 h cache of the full list.
+
+If you want the deep dive: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+---
+
+## Endpoints
+
+| Method | Path | Auth | Notes |
+|---|---|---|---|
+| GET | `/` | — | Server info |
+| GET | `/api/v1/health` | — | DB + Redis health |
+| GET | `/api/v1/banlist` | — | Full list (rate-limited) |
+| POST | `/api/v1/ban` | API key | Add a ban |
+| DELETE | `/api/v1/ban/{name}` | API key | Remove a ban |
+
+`POST /api/v1/ban` body:
+
+```json
+{ "faceit_name": "Watashi-", "reason": "Cheating", "author": "Drazy" }
+```
+
+Names: 2–32 ASCII chars (`A–Z a–z 0–9 _ -`). Reason: 1–250 chars. Author: 2–32 chars.
+
+---
+
+## Updating
+
 ```bash
-curl -X GET http://localhost:8000/api/v1/banlist \
-  -H "X-API-Key: your-api-key"
+git pull
+docker compose up -d --build
+cd extension && npm run build
 ```
 
-**Add player to banlist:**
-```bash
-curl -X POST http://localhost:8000/api/v1/ban \
-  -H "X-API-Key: your-api-key" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "faceit_name": "PlayerName",
-    "reason": "Cheating",
-    "author": "AdminBot"
-  }'
-```
+Then reload the extension in `chrome://extensions/`.
 
-**Remove player from banlist:**
-```bash
-curl -X DELETE http://localhost:8000/api/v1/ban/PlayerName \
-  -H "X-API-Key: your-api-key"
-```
-
-## Environment Variables
-
-Key variables in `.env`:
-
-```env
-# Database
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/purgeq
-
-# Redis
-REDIS_URL=redis://localhost:6379/0
-
-# API
-VALID_API_KEYS=key1,key2,key3
-DEBUG=false
-
-# Extension
-REACT_APP_API_URL=https://api.example.com
-```
-
-## Testing
-
-### Backend Tests
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=api --cov-report=html
-
-# Run specific test file
-pytest tests/test_service.py -v
-```
-
-### Linting & Formatting
-```bash
-# Lint with Ruff
-ruff check api tests
-
-# Format with Black
-black api tests
-
-# Type checking
-mypy api
-```
-
-### Extension Tests
-```bash
-cd extension
-
-# Lint
-npm run lint
-
-# Format check
-npm run format -- --check
-
-# Type check
-npm run type-check
-```
-
-## Docker Deployment
-
-### Build and run with Docker Compose
-```bash
-docker-compose up -d
-```
-
-### Build custom image
-```bash
-docker build -f docker/Dockerfile.api -t purgeq-api:latest .
-```
-
-### Run image
-```bash
-docker run -p 8000:8000 \
-  -e DATABASE_URL=postgresql://... \
-  -e REDIS_URL=redis://... \
-  purgeq-api:latest
-```
-
-## Database Migrations
-
-### Create new migration
-```bash
-alembic revision --autogenerate -m "Description of changes"
-```
-
-### Apply migrations
-```bash
-alembic upgrade head
-```
-
-### Rollback
-```bash
-alembic downgrade -1
-```
-
-## CI/CD
-
-GitHub Actions workflows:
-- `ci-cd.yml` - Runs tests, linting, builds Docker image
-- `release.yml` - Creates releases on tag push
-
-### Workflow Steps
-1. Backend tests (pytest, Ruff, Black, Mypy)
-2. Extension build and lint
-3. Docker image build and push
-4. Security scanning with Trivy
-5. Optional deployment to production
-
-## Performance Optimizations
-
-### Backend
-- **Async/await** for non-blocking database operations
-- **Connection pooling** with SQLAlchemy
-- **Redis caching** for banlist (1 hour TTL)
-- **O(1) lookups** with Map structure
-- **Rate limiting** with Redis sliding window
-- **Index** on faceit_name for fast queries
-
-### Extension
-- **MutationObserver** for efficient DOM monitoring
-- **Local storage** for offline support
-- **Background refresh** every 60 seconds
-- **Debounced** player name scanning
-- **Map-based** O(1) lookup for banned players
-
-## Security Considerations
-
-✅ **API Security:**
-- API key authentication via X-API-Key header
-- Rate limiting (100 requests/60s by default)
-- SQL injection prevention with SQLAlchemy ORM
-- CORS configuration
-- Input validation with Pydantic
-- Async connections to prevent blocking
-
-✅ **Extension Security:**
-- Content Security Policy in manifest
-- No eval() or inline scripts
-- Safe DOM manipulation
-- Proper error handling
-
-⚠️ **TODO:**
-- Add JWT tokens for better auth
-- Implement HTTPS enforcement
-- Add request logging and monitoring
-- Set up database backups
+---
 
 ## Troubleshooting
 
-### Port already in use
-```bash
-# Free up port 8000
-lsof -ti:8000 | xargs kill -9
-```
+| Symptom | Likely cause |
+|---|---|
+| Popup says "Could not reach API" | Server not running, or the URL has no host permission — open Settings → Save again, accept the prompt |
+| `chrome.permissions.request: must be called during a user gesture` | Outdated build, run `npm run build` and reload the extension |
+| Banned players not highlighted on FACEIT | Hard-refresh the FACEIT tab (Ctrl+F5); the content script attaches at `document_end` |
+| `npm run build` fails on `eslint-plugin-react` | `npm install` again — the lockfile may be missing |
+| Docker says port 8000 is busy | Edit `API_PORT` in `.env` |
 
-### Database connection refused
-```bash
-# Check PostgreSQL is running
-docker-compose ps
-docker-compose logs postgres
-```
+---
 
-### Extension not loading
-1. Check manifest version (must be 3)
-2. Verify all file paths in manifest.json
-3. Check browser console for errors
-4. Try hard-refresh and reload
+## Self-hosted vs hosted version
 
-## Contributing
+This repo is the **self-hosted** flavour: you run the server yourself, your data stays on your machine, the API key is whatever you typed in `.env`.
 
-1. Create feature branch: `git checkout -b feature/name`
-2. Commit changes: `git commit -am 'Add feature'`
-3. Run tests: `pytest && cd extension && npm run lint`
-4. Push: `git push origin feature/name`
-5. Create Pull Request
+A **public-hosted** flavour is planned (one server, many independent users, each with their own key and their own banlist). Roadmap below.
+
+---
+
+## Roadmap: public-hosted version
+
+The idea: one PurgeQ instance on a VPS, anyone can sign up, each user gets their own banlist that they can share by handing out their key.
+
+The proposed model:
+
+1. **Each API key owns a namespace.** A new column `namespace` on `banlist_items` scopes every read/write. The service refuses cross-namespace access.
+2. **Self-service registration.** A `/signup` page (no email, no password) that just generates a fresh UUID-v4 key and shows it once. Whoever holds the key has full control of that namespace — that's the whole auth model.
+3. **Sharing = giving the key.** No "team" concept. If Alice gives her key to Bob, Bob can read and write Alice's list. Same as today, just isolated per key.
+4. **Optional read-only sub-keys** (later): the owner can generate a derived key that the API recognises as read-only. Useful so a friend can highlight bans without being able to add or remove them.
+5. **Per-key rate limits** instead of per-IP (NATs, mobile carriers, etc.).
+6. **Caps to keep the platform sane:** max N keys created per IP per day, max banlist size per namespace, anti-spam on writes.
+7. **The extension picks a mode in Settings:**
+   - "PurgeQ public service" — pre-fills the public URL, only asks for an API key, has a "Get a key" button that opens the signup page.
+   - "Self-hosted" — current behaviour (manual URL).
+
+Operations on the VPS would be: the same Docker Compose, behind Caddy/Nginx for TLS, with daily Postgres dumps.
+
+If the multi-tenant model lands, this repo stays usable for self-hosting (a `MULTI_TENANT=false` setting will keep the current single-namespace behaviour).
+
+---
+
+## Stack
+
+- **API:** Python 3.12, FastAPI, async SQLAlchemy 2, Alembic, Pydantic v2
+- **Storage:** PostgreSQL 16, Redis 7
+- **Extension:** TypeScript, React 18, Vite, Chrome Manifest V3
+- **Container:** Docker + Docker Compose
+
+---
 
 ## License
 
-MIT License - See LICENSE file
-
-## Support
-
-For issues and questions:
-- GitHub Issues
-- Documentation: `/docs` endpoint
-- Email: support@example.com
+MIT — see [LICENSE](LICENSE).
