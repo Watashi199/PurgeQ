@@ -108,6 +108,9 @@ function scanCards() {
 
 function processCard(card: HTMLElement) {
   if (card.getAttribute(PROCESSED_ATTR)) return;
+  // Empty "invite players" slots on party pages share the data-playercard
+  // attribute with real cards but have no avatar — skip them.
+  if (!card.querySelector('img[aria-label="avatar"]')) return;
   const nickname = getNicknameFromCard(card);
   if (!nickname) return;
 
