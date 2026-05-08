@@ -110,9 +110,12 @@ async def _fetch_user_id(access_token: str) -> Optional[str]:
 async def claim_or_create_key(db: AsyncSession, code: str) -> Optional[str]:
     """Run the full OAuth handshake and return a fresh API key.
 
-    For an existing Discord user we rotate the key (so anyone holding the
-    previous one loses access — the rotation IS the recovery). For a new
-    user we create the row.
+    The `ApiKey.id` is the namespace identifier and stays constant across
+    re-logins — only `key_hash` is rotated. That's how recovery preserves
+    the user's banlist: existing `banlist_items.namespace_id` rows still
+    point at the same UUID, the new key just unlocks the same drawer.
+
+    For a brand new Discord user we create the row from scratch.
     """
     access_token = await _exchange_code(code)
     if not access_token:

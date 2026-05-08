@@ -195,7 +195,7 @@ The same codebase runs as a public service where each user gets their own privat
 
 **How users sign up:** they visit `https://your-domain/signup`, click "Sign in with Discord", consent, and get an API key shown once.
 
-**How recovery works:** there isn't a separate flow — they just hit `/signup` again and re-login with Discord. The server detects the same Discord ID, generates a fresh key, and invalidates the previous one. No email, no recovery phrase.
+**How recovery works:** there isn't a separate flow — they just hit `/signup` again and re-login with Discord. The server detects the same Discord ID, generates a fresh key, and invalidates the previous one. **The user keeps their banlist** because the namespace ID is tied to the Discord account, not to the key value: rotating the key only swaps the hash, not the namespace UUID. No email, no recovery phrase.
 
 **How sharing works:** the API key is the credential. Pasting the same key into another person's extension gives them the same namespace.
 
