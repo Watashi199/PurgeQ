@@ -25,8 +25,15 @@ router = APIRouter(prefix="/api/v1", tags=["banlist"])
 @router.get("/banlist", response_model=BanlistResponse, summary="Get complete banlist")
 async def get_banlist(
     db: Annotated[AsyncSession, Depends(get_db_session)],
+    request: Request,
 ) -> BanlistResponse:
     """Get the complete FACEIT banlist."""
+    # Rate-limit even unauthenticated reads — the endpoint is public so without
+    # this it could be scraped or DoSed trivially.
+    client_ip = request.client.host if request.client else "unknown"
+    redis = await get_redis_client()
+    await check_rate_limit(client_ip, redis)
+
     service = BanlistService(db)
     items = await service.get_all_items()
     return BanlistResponse(items=items, count=len(items))

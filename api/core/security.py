@@ -1,8 +1,7 @@
 """Security utilities including API key validation."""
-import hashlib
+import hmac
 from typing import Optional
 
-from fastapi import HTTPException, status
 from fastapi.security import APIKeyHeader
 
 from .config import get_settings
@@ -14,7 +13,7 @@ api_key_header = APIKeyHeader(name=settings.API_KEY_HEADER, auto_error=False)
 
 
 async def verify_api_key(api_key: Optional[str] = None) -> bool:
-    """Verify API key validity.
+    """Verify API key validity using a constant-time comparison.
 
     Args:
         api_key: API key to verify
@@ -28,17 +27,13 @@ async def verify_api_key(api_key: Optional[str] = None) -> bool:
     if not api_key:
         raise APIKeyInvalidException("API key is missing")
 
-    if api_key not in settings.VALID_API_KEYS:
+    valid = False
+    for candidate in settings.VALID_API_KEYS:
+        if hmac.compare_digest(api_key, candidate):
+            valid = True
+            # Don't break early — keep loop work proportional to the
+            # configured key count, not the matching index.
+    if not valid:
         raise APIKeyInvalidException("Invalid API key")
 
     return True
-
-
-def hash_password(password: str) -> str:
-    """Hash a password using SHA256."""
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
-def verify_password(password: str, hashed: str) -> bool:
-    """Verify password against hash."""
-    return hash_password(password) == hashed

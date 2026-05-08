@@ -1,41 +1,41 @@
 """FastAPI application factory."""
+import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from api.core import (
+    APIKeyInvalidException,
+    BanlistItemNotFound,
+    DatabaseException,
+    DuplicateItemException,
+    PurgeQException,
+    RateLimitException,
+    ValidationException,
+    close_redis_client,
+    dispose_db,
     get_settings,
     init_db,
-    dispose_db,
-    close_redis_client,
-    PurgeQException,
-    APIKeyInvalidException,
-    RateLimitException,
-    BanlistItemNotFound,
-    DuplicateItemException,
-    ValidationException,
-    DatabaseException,
 )
 from api.routers import router
 
+logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle."""
-    # Startup
-    print("Initializing database...")
+    logger.info("Initializing database...")
     await init_db()
-    print("✓ Application started")
+    logger.info("Application started")
     yield
-    # Shutdown
-    print("Closing connections...")
+    logger.info("Closing connections...")
     await close_redis_client()
     await dispose_db()
-    print("✓ Application stopped")
+    logger.info("Application stopped")
 
 
 def create_app() -> FastAPI:
@@ -54,13 +54,18 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS middleware
+    # CORS middleware. Per the CORS spec, "*" is incompatible with
+    # allow_credentials=True — browsers reject the response. We disable
+    # credentials when the wildcard is in use, and re-enable them only
+    # for explicit origin lists. The X-API-Key header is also allow-listed
+    # explicitly so we don't end up with the wildcard there either.
+    wildcard_origins = "*" in settings.ALLOWED_ORIGINS
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.ALLOWED_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_credentials=not wildcard_origins,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", settings.API_KEY_HEADER],
     )
 
     # Include routers
@@ -104,16 +109,18 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(DatabaseException)
     async def database_exception_handler(request, exc):
+        logger.exception("Database error", exc_info=exc)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": str(exc)},
+            content={"detail": "Internal database error"},
         )
 
     @app.exception_handler(PurgeQException)
     async def purgeq_exception_handler(request, exc):
+        logger.exception("Unhandled PurgeQ error", exc_info=exc)
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            content={"detail": str(exc)},
+            content={"detail": "Internal server error"},
         )
 
     # Root endpoint

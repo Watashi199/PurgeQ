@@ -10,11 +10,13 @@ export const DEFAULT_API_URL =
 export interface Settings {
   apiUrl: string;
   apiKey: string;
+  defaultAuthor: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   apiUrl: DEFAULT_API_URL,
   apiKey: '',
+  defaultAuthor: '',
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -24,6 +26,7 @@ export async function getSettings(): Promise<Settings> {
     return {
       apiUrl: value?.apiUrl?.trim() || DEFAULT_SETTINGS.apiUrl,
       apiKey: value?.apiKey ?? DEFAULT_SETTINGS.apiKey,
+      defaultAuthor: value?.defaultAuthor ?? DEFAULT_SETTINGS.defaultAuthor,
     };
   } catch (error) {
     console.error('Failed to read settings:', error);
@@ -35,6 +38,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
   const normalized: Settings = {
     apiUrl: normalizeUrl(settings.apiUrl) || DEFAULT_SETTINGS.apiUrl,
     apiKey: settings.apiKey.trim(),
+    defaultAuthor: settings.defaultAuthor.trim(),
   };
   await chrome.storage.local.set({ [SETTINGS_KEY]: normalized });
 }
@@ -58,31 +62,60 @@ function urlToOriginPattern(url: string): string | null {
   }
 }
 
-export async function hasApiHostPermission(url: string): Promise<boolean> {
+export function hasApiHostPermission(url: string): Promise<boolean> {
   const origin = urlToOriginPattern(url);
-  if (!origin) return false;
-  try {
-    return await chrome.permissions.contains({ origins: [origin] });
-  } catch {
-    return false;
-  }
+  if (!origin) return Promise.resolve(false);
+  return containsCallback(origin);
+}
+
+function hasUserActivation(): boolean {
+  return (navigator as Navigator & { userActivation?: { isActive: boolean } })
+    .userActivation?.isActive ?? true;
+}
+
+function containsCallback(origin: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    try {
+      chrome.permissions.contains({ origins: [origin] }, (granted) => {
+        void chrome.runtime.lastError;
+        resolve(!!granted);
+      });
+    } catch {
+      resolve(false);
+    }
+  });
 }
 
 /**
  * Request host permission for the given API URL.
- * Returns true if already granted or successfully granted, false otherwise.
- * Must be called from a user gesture context.
+ *
+ * Uses the callback variant of `chrome.permissions.request` so any failure
+ * surfaces silently through `chrome.runtime.lastError` instead of producing
+ * a Promise rejection that Chrome logs to the console as
+ * "Permission request failed: ...".
+ *
+ * If we don't have a transient user activation, we skip the request entirely
+ * and just report whether the permission is already granted.
  */
-export async function requestApiHostPermission(url: string): Promise<boolean> {
+export function requestApiHostPermission(url: string): Promise<boolean> {
   const origin = urlToOriginPattern(url);
-  if (!origin) return false;
+  if (!origin) return Promise.resolve(false);
 
-  try {
-    const already = await chrome.permissions.contains({ origins: [origin] });
-    if (already) return true;
-    return await chrome.permissions.request({ origins: [origin] });
-  } catch (error) {
-    console.error('Permission request failed:', error);
-    return false;
+  if (!hasUserActivation()) {
+    return containsCallback(origin);
   }
+
+  return new Promise((resolve) => {
+    try {
+      chrome.permissions.request({ origins: [origin] }, (granted) => {
+        if (chrome.runtime.lastError) {
+          containsCallback(origin).then(resolve);
+          return;
+        }
+        resolve(!!granted);
+      });
+    } catch {
+      containsCallback(origin).then(resolve);
+    }
+  });
 }

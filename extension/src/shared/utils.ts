@@ -4,8 +4,8 @@
 
 import { getSettings } from './settings';
 
-export const CACHE_KEY = 'purgeq_banlist_cache';
-export const CACHE_TTL = 3600000; // 1 hour in ms
+const CACHE_KEY = 'purgeq_banlist_cache';
+const CACHE_TTL = 3600000; // 1 hour in ms
 export const REFRESH_INTERVAL = 60000; // 60 seconds in ms
 
 export interface BanlistItem {
@@ -17,7 +17,7 @@ export interface BanlistItem {
   updated_at: string;
 }
 
-export interface CachedBanlist {
+interface CachedBanlist {
   timestamp: number;
   data: Map<string, BanlistItem>;
 }
@@ -67,15 +67,7 @@ export async function getBanlist(): Promise<Map<string, BanlistItem>> {
   }
 }
 
-export function isPlayerBanned(
-  playerName: string,
-  banlist: Map<string, BanlistItem>
-): BanlistItem | null {
-  const key = playerName.toLowerCase();
-  return banlist.get(key) || null;
-}
-
-export async function getCachedBanlist(): Promise<CachedBanlist | null> {
+async function getCachedBanlist(): Promise<CachedBanlist | null> {
   try {
     const stored = await chrome.storage.local.get(CACHE_KEY);
     if (!stored[CACHE_KEY]) return null;
@@ -91,7 +83,7 @@ export async function getCachedBanlist(): Promise<CachedBanlist | null> {
   }
 }
 
-export async function setCachedBanlist(cached: {
+async function setCachedBanlist(cached: {
   timestamp: number;
   data: Record<string, BanlistItem>;
 }): Promise<void> {
@@ -110,17 +102,6 @@ export async function clearBanlistCache(): Promise<void> {
   }
 }
 
-export function isCacheExpired(cached: CachedBanlist): boolean {
+function isCacheExpired(cached: CachedBanlist): boolean {
   return Date.now() - cached.timestamp > CACHE_TTL;
-}
-
-export function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }

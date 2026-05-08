@@ -28,10 +28,15 @@ const PopupApp: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showSettings, setShowSettings] = useState(false);
-  const [settings, setSettings] = useState<Settings>({ apiUrl: DEFAULT_API_URL, apiKey: '' });
+  const [settings, setSettings] = useState<Settings>({
+    apiUrl: DEFAULT_API_URL,
+    apiKey: '',
+    defaultAuthor: '',
+  });
   const [draftSettings, setDraftSettings] = useState<Settings>({
     apiUrl: DEFAULT_API_URL,
     apiKey: '',
+    defaultAuthor: '',
   });
 
   useEffect(() => {
@@ -39,17 +44,6 @@ const PopupApp: React.FC = () => {
       const stored = await getSettings();
       setSettings(stored);
       setDraftSettings(stored);
-
-      const granted = await requestApiHostPermission(stored.apiUrl);
-      if (!granted) {
-        setError(
-          `The extension needs permission to reach ${stored.apiUrl}. Open Settings and click Save to grant it.`
-        );
-        setShowSettings(true);
-        setLoading(false);
-        return;
-      }
-
       await loadBanlist();
     })();
   }, []);
@@ -68,15 +62,6 @@ const PopupApp: React.FC = () => {
     try {
       setLoading(true);
       const apiUrl = await getApiBaseUrl();
-
-      const allowed = await hasApiHostPermission(apiUrl);
-      if (!allowed) {
-        setError(`No permission to access ${apiUrl}. Open Settings and click Save.`);
-        setShowSettings(true);
-        setBanlist([]);
-        return;
-      }
-
       const banlistMap = await getBanlist();
       const items = Array.from(banlistMap.values());
       setBanlist(
@@ -86,11 +71,19 @@ const PopupApp: React.FC = () => {
       );
 
       if (items.length === 0) {
-        const probe = await fetch(`${apiUrl}/health`).catch(() => null);
+        const probe = await fetch(`${apiUrl}/`).catch(() => null);
         if (!probe || !probe.ok) {
-          setError(
-            `Could not reach the API at ${apiUrl}. Check that the server is running and the URL is correct.`
-          );
+          const allowed = await hasApiHostPermission(apiUrl);
+          if (!allowed) {
+            setError(
+              `Could not reach ${apiUrl}. Open Settings and click Save to grant access.`
+            );
+            setShowSettings(true);
+          } else {
+            setError(
+              `Could not reach the API at ${apiUrl}. Check that the server is running and the URL is correct.`
+            );
+          }
         }
       }
     } catch (err) {
@@ -101,7 +94,7 @@ const PopupApp: React.FC = () => {
   }
 
   async function handleTestConnection() {
-    const url = draftSettings.apiUrl.trim() || DEFAULT_API_URL;
+    const url = (draftSettings.apiUrl.trim() || DEFAULT_API_URL).replace(/\/+$/, '');
     setError('');
     setSuccess('');
     try {
@@ -110,9 +103,11 @@ const PopupApp: React.FC = () => {
         setError('Permission denied for this URL.');
         return;
       }
-      const response = await fetch(`${url.replace(/\/+$/, '')}/health`);
+      const response = await fetch(`${url}/`);
       if (response.ok) {
-        setSuccess(`Connected to ${url}`);
+        const data = await response.json().catch(() => null);
+        const version = data?.version ? ` (v${data.version})` : '';
+        setSuccess(`Connected to ${url}${version}`);
       } else {
         setError(`Server returned HTTP ${response.status} from ${url}`);
       }
@@ -229,7 +224,7 @@ const PopupApp: React.FC = () => {
   }
 
   function handleResetSettings() {
-    setDraftSettings({ apiUrl: DEFAULT_API_URL, apiKey: '' });
+    setDraftSettings({ apiUrl: DEFAULT_API_URL, apiKey: '', defaultAuthor: '' });
   }
 
   const filteredBanlist = banlist.filter(
@@ -297,6 +292,22 @@ const PopupApp: React.FC = () => {
             />
             <span className="settings-hint">
               Required to add or remove bans. Stored locally in chrome.storage.
+            </span>
+          </label>
+          <label className="settings-label">
+            Default author
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Your name (used when banning from FACEIT)"
+              maxLength={32}
+              value={draftSettings.defaultAuthor}
+              onChange={(e) =>
+                setDraftSettings({ ...draftSettings, defaultAuthor: e.target.value })
+              }
+            />
+            <span className="settings-hint">
+              Used as the "author" when you click the inline ban button on a player card.
             </span>
           </label>
           <div className="settings-actions">
