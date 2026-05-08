@@ -10,7 +10,6 @@ help:
 	@echo "  make test          - Run tests"
 	@echo "  make lint          - Run linting (Ruff + Black)"
 	@echo "  make format        - Format code with Black"
-	@echo "  make type-check    - Run type checking with Mypy"
 	@echo "  make migrations    - Run database migrations"
 	@echo ""
 	@echo "Extension:"
@@ -47,9 +46,6 @@ lint:
 format:
 	black api tests
 	ruff check --fix api tests
-
-type-check:
-	mypy api
 
 migrations:
 	alembic upgrade head

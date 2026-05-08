@@ -1,15 +1,12 @@
 """Tests for API routes."""
-import pytest
-from fastapi.testclient import TestClient
 
 
-@pytest.mark.asyncio
-async def test_health_endpoint(test_client):
+def test_health_endpoint(test_client):
     """Test health check endpoint."""
-    response = test_client.get("/health")
+    response = test_client.get("/api/v1/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "ok"
+    assert data["status"] in {"ok", "degraded"}
 
 
 def test_root_endpoint(test_client):

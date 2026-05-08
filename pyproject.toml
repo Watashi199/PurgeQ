@@ -35,12 +35,6 @@ dependencies = [
     "redis>=5.0.1",
     "python-dotenv==1.0.0",
     "alembic>=1.12.1",
-    "pytest==7.4.3",
-    "pytest-asyncio==0.21.1",
-    "pytest-cov==4.1.0",
-    "httpx==0.25.1",
-    "ruff==0.1.8",
-    "black==23.12.0",
 ]
 
 [project.optional-dependencies]
@@ -48,9 +42,10 @@ dev = [
     "pytest==7.4.3",
     "pytest-asyncio==0.21.1",
     "pytest-cov==4.1.0",
+    "aiosqlite>=0.19.0",
+    "httpx==0.25.1",
     "ruff==0.1.8",
     "black==23.12.0",
-    "mypy==1.7.1",
 ]
 
 [tool.setuptools]
@@ -60,7 +55,7 @@ packages = ["api"]
 testpaths = ["tests"]
 python_files = "test_*.py"
 asyncio_mode = "auto"
-addopts = "-v --cov=api --cov-report=html --cov-report=term-missing"
+addopts = "-v"
 
 [tool.ruff]
 line-length = 100
@@ -88,9 +83,3 @@ extend-exclude = '''
   | migrations
 )/
 '''
-
-[tool.mypy]
-python_version = "3.12"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true

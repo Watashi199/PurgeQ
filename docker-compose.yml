@@ -61,7 +61,11 @@ services:
     networks:
       - purgeq-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').getcode()==200 else 1)"
       interval: 10s
       timeout: 5s
       retries: 5

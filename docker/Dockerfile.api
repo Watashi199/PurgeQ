@@ -19,9 +19,10 @@ COPY migrations/ ./migrations
 COPY docker/start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()" || exit 1
+# Health check — hits the root info endpoint which has no DB dependency,
+# so the container reports healthy as soon as uvicorn is serving requests.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/').getcode()==200 else 1)" || exit 1
 
 # Run application
 CMD ["uvicorn", "api.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
