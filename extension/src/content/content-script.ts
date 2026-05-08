@@ -109,8 +109,10 @@ function scanCards() {
 function processCard(card: HTMLElement) {
   if (card.getAttribute(PROCESSED_ATTR)) return;
   // Empty "invite players" slots on party pages share the data-playercard
-  // attribute with real cards but have no avatar — skip them.
-  if (!card.querySelector('img[aria-label="avatar"]')) return;
+  // attribute with real cards but have no Avatar holder — skip them.
+  // We match the holder class rather than `img[aria-label="avatar"]` so
+  // players without a custom avatar (default placeholder) still qualify.
+  if (!card.querySelector('[class*="AvatarHolder"]')) return;
   const nickname = getNicknameFromCard(card);
   if (!nickname) return;
 
