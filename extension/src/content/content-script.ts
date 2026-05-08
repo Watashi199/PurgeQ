@@ -14,7 +14,9 @@ interface BanlistItem {
 
 const SCAN_DEBOUNCE_MS = 250;
 const PROCESSED_ATTR = 'data-purgeq-processed';
-const CARD_SELECTOR = '[data-testid="playerCard"]';
+// FACEIT renders player cards differently across pages. Match-room cards use
+// `data-testid="playerCard"`; party/lobby cards use `data-playercard="true"`.
+const CARD_SELECTOR = '[data-testid="playerCard"], [data-playercard="true"]';
 const NICKNAME_SELECTOR = '[class*="Nickname"]';
 const NAME_LINK_SELECTOR = 'a[href*="/players/"]';
 
@@ -348,7 +350,8 @@ function injectStyles() {
       z-index: 1;
     }
 
-    [data-testid="playerCard"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action) {
+    [data-testid="playerCard"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action),
+    [data-playercard="true"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action) {
       position: relative;
       z-index: 2;
     }
@@ -384,7 +387,8 @@ function injectStyles() {
       transform: translateY(4px);
     }
 
-    [data-testid="playerCard"]:hover .purgeq-card-action-ban {
+    [data-testid="playerCard"]:hover .purgeq-card-action-ban,
+    [data-playercard="true"]:hover .purgeq-card-action-ban {
       opacity: 1;
       transform: translateY(0);
     }

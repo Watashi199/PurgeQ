@@ -8,7 +8,7 @@ from .cache import (
     set_cache,
 )
 from .config import Settings, get_settings
-from .database import Base, dispose_db, engine, get_db_session, init_db
+from .database import Base, dispose_db, engine, get_db_session
 from .exceptions import (
     APIKeyInvalidException,
     BanlistItemNotFound,
@@ -48,7 +48,6 @@ __all__ = [
     "get_redis_client",
     "get_settings",
     "hash_api_key",
-    "init_db",
     "invalidate_banlist_cache",
     "resolve_namespace",
     "set_cache",
