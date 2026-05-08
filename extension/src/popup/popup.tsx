@@ -227,6 +227,11 @@ const PopupApp: React.FC = () => {
     setDraftSettings({ apiUrl: DEFAULT_API_URL, apiKey: '', defaultAuthor: '' });
   }
 
+  function handleGetKey() {
+    const url = (draftSettings.apiUrl.trim() || DEFAULT_API_URL).replace(/\/+$/, '');
+    chrome.tabs.create({ url: `${url}/signup` });
+  }
+
   const filteredBanlist = banlist.filter(
     (item) =>
       item.faceit_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -292,7 +297,17 @@ const PopupApp: React.FC = () => {
             />
             <span className="settings-hint">
               Required to add or remove bans. Stored locally in chrome.storage.
+              On a public PurgeQ server, click <em>Get a key with Discord</em>{' '}
+              below to receive one.
             </span>
+            <button
+              type="button"
+              className="btn btn-refresh"
+              onClick={handleGetKey}
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Get a key with Discord
+            </button>
           </label>
           <label className="settings-label">
             Default author
