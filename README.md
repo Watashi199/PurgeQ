@@ -172,25 +172,34 @@ A **public-hosted** flavour is planned (one server, many independent users, each
 
 ---
 
-## Roadmap: public-hosted version
+## Public-hosted mode (multi-tenant)
 
-The idea: one PurgeQ instance on a VPS, anyone can sign up, each user gets their own banlist that they can share by handing out their key.
+The same codebase runs as a public service where each user gets their own private banlist, identified by an API key.
 
-The proposed model:
+**Setup on the VPS:**
 
-1. **Each API key owns a namespace.** A new column `namespace` on `banlist_items` scopes every read/write. The service refuses cross-namespace access.
-2. **Self-service registration.** A `/signup` page (no email, no password) that just generates a fresh UUID-v4 key and shows it once. Whoever holds the key has full control of that namespace — that's the whole auth model.
-3. **Sharing = giving the key.** No "team" concept. If Alice gives her key to Bob, Bob can read and write Alice's list. Same as today, just isolated per key.
-4. **Optional read-only sub-keys** (later): the owner can generate a derived key that the API recognises as read-only. Useful so a friend can highlight bans without being able to add or remove them.
-5. **Per-key rate limits** instead of per-IP (NATs, mobile carriers, etc.).
-6. **Caps to keep the platform sane:** max N keys created per IP per day, max banlist size per namespace, anti-spam on writes.
-7. **The extension picks a mode in Settings:**
-   - "PurgeQ public service" — pre-fills the public URL, only asks for an API key, has a "Get a key" button that opens the signup page.
-   - "Self-hosted" — current behaviour (manual URL).
+1. Create a Discord application at <https://discord.com/developers/applications>. Under **OAuth2 → Redirects**, add `https://your-domain/auth/discord/callback`. Copy the **Client ID** and **Client Secret**.
+2. In `.env`, fill in (generate the pepper with `python -c "import secrets; print(secrets.token_urlsafe(32))"`):
 
-Operations on the VPS would be: the same Docker Compose, behind Caddy/Nginx for TLS, with daily Postgres dumps.
+    ```env
+    MULTI_TENANT=true
+    API_KEY_PEPPER=<paste-the-generated-secret-here>
+    DISCORD_CLIENT_ID=...
+    DISCORD_CLIENT_SECRET=...
+    DISCORD_REDIRECT_URI=https://your-domain/auth/discord/callback
+    PUBLIC_BASE_URL=https://your-domain
+    ```
 
-If the multi-tenant model lands, this repo stays usable for self-hosting (a `MULTI_TENANT=false` setting will keep the current single-namespace behaviour).
+3. `docker compose up -d` and run migrations: `docker compose exec api alembic upgrade head`.
+4. Put Caddy/Nginx in front for TLS.
+
+**How users sign up:** they visit `https://your-domain/signup`, click "Sign in with Discord", consent, and get an API key shown once.
+
+**How recovery works:** there isn't a separate flow — they just hit `/signup` again and re-login with Discord. The server detects the same Discord ID, generates a fresh key, and invalidates the previous one. No email, no recovery phrase.
+
+**How sharing works:** the API key is the credential. Pasting the same key into another person's extension gives them the same namespace.
+
+**Backward compat:** `MULTI_TENANT=false` (the default) keeps the original behaviour — static keys in `.env`, public GET, single shared banlist.
 
 ---
 

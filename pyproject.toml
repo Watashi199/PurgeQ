@@ -35,6 +35,7 @@ dependencies = [
     "redis>=5.0.1",
     "python-dotenv==1.0.0",
     "alembic>=1.12.1",
+    "httpx>=0.25.1",
 ]
 
 [project.optional-dependencies]

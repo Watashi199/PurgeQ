@@ -20,6 +20,7 @@ from api.core import (
     init_db,
 )
 from api.routers import router
+from api.routers.auth import router as auth_router
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -70,6 +71,7 @@ def create_app() -> FastAPI:
 
     # Include routers
     app.include_router(router)
+    app.include_router(auth_router)
 
     # Exception handlers
     @app.exception_handler(APIKeyInvalidException)

@@ -34,6 +34,24 @@ class Settings(BaseSettings):
     # API Key
     API_KEY_HEADER: str = "X-API-Key"
     VALID_API_KEYS: list[str] = []
+    # Used to derive a deterministic, indexable hash of API keys in
+    # multi-tenant mode. Generate once: `python -c "import secrets;
+    # print(secrets.token_urlsafe(32))"`
+    API_KEY_PEPPER: str = ""
+
+    # Multi-tenant / public hosting
+    # When False (default), the API behaves as before: VALID_API_KEYS
+    # are static, GET /banlist is public, all bans share one namespace.
+    # When True, each API key owns its own namespace and is provisioned
+    # via Discord OAuth on the /signup page.
+    MULTI_TENANT: bool = False
+    DISCORD_CLIENT_ID: str = ""
+    DISCORD_CLIENT_SECRET: str = ""
+    # Public URL where Discord should redirect back after auth.
+    # E.g. https://purgeq.example.com/auth/discord/callback
+    DISCORD_REDIRECT_URI: str = ""
+    # Public base URL of the site (used to render signup links).
+    PUBLIC_BASE_URL: str = ""
 
     # CORS
     ALLOWED_ORIGINS: list[str] = ["*"]
