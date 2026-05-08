@@ -17,7 +17,6 @@ from api.core import (
     close_redis_client,
     dispose_db,
     get_settings,
-    init_db,
 )
 from api.routers import router
 from api.routers.auth import router as auth_router
@@ -28,9 +27,7 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Manage application lifecycle."""
-    logger.info("Initializing database...")
-    await init_db()
+    """Manage application lifecycle. Schema is owned by Alembic (see start.sh)."""
     logger.info("Application started")
     yield
     logger.info("Closing connections...")
