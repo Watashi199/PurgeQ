@@ -342,6 +342,10 @@ function injectStyles() {
       50% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5), 0 0 32px rgba(239, 68, 68, 0.7); }
     }
 
+    .purgeq-banned-card [class*="Nickname"] {
+      color: #ef4444 !important;
+    }
+
     .purgeq-bg-overlay {
       position: absolute;
       inset: 0;
