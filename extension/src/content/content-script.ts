@@ -23,6 +23,26 @@ const NAME_LINK_SELECTOR = 'a[href*="/players/"]';
 let currentBanlist: Map<string, BanlistItem> = new Map();
 let scanTimeout: ReturnType<typeof setTimeout> | null = null;
 
+// Track nicknames we've already evaluated so we only request a fresh banlist
+// when a *genuinely new* player shows up (avoids spamming on every re-scan).
+const seenNicknames = new Set<string>();
+let lastRefreshRequestAt = 0;
+// Don't ask the service worker for a refresh more than once every 5 s.
+const REFRESH_THROTTLE_MS = 5000;
+
+function requestRefreshIfStale() {
+  const now = Date.now();
+  if (now - lastRefreshRequestAt < REFRESH_THROTTLE_MS) return;
+  lastRefreshRequestAt = now;
+  try {
+    chrome.runtime.sendMessage({ type: 'REFRESH_BANLIST' }, () => {
+      void chrome.runtime.lastError;
+    });
+  } catch {
+    // Extension reloaded mid-session — ignore.
+  }
+}
+
 function isPlayerBanned(name: string): BanlistItem | null {
   return currentBanlist.get(name.toLowerCase()) || null;
 }
@@ -122,6 +142,10 @@ function processCard(card: HTMLElement) {
     card.style.position = 'relative';
   }
 
+  const lower = nickname.toLowerCase();
+  const isNewPlayer = !seenNicknames.has(lower);
+  seenNicknames.add(lower);
+
   const banned = isPlayerBanned(nickname);
   if (banned) {
     card.classList.add('purgeq-banned-card');
@@ -129,6 +153,9 @@ function processCard(card: HTMLElement) {
     card.appendChild(createUnbanButton(nickname, banned));
   } else {
     card.appendChild(createBanButton(nickname));
+    // Someone we've never seen who isn't in our cache might be banned by a
+    // teammate since our last sync — pull a fresh list (throttled).
+    if (isNewPlayer) requestRefreshIfStale();
   }
 }
 
