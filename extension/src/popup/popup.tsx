@@ -20,14 +20,96 @@ import {
   saveSettings,
 } from '../shared/settings';
 
+type Tab = 'banlist' | 'import' | 'settings';
+
+const Icon = {
+  Shield: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path d="m9 12 2 2 4-4" />
+    </svg>
+  ),
+  List: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <line x1="8" y1="6" x2="21" y2="6" />
+      <line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" />
+      <line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" />
+      <line x1="3" y1="18" x2="3.01" y2="18" />
+    </svg>
+  ),
+  Upload: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  ),
+  Settings: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  ),
+  Refresh: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+      <polyline points="23 4 23 10 17 10" />
+      <polyline points="1 20 1 14 7 14" />
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+    </svg>
+  ),
+  Trash: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+      <path d="M10 11v6M14 11v6" />
+      <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2" />
+    </svg>
+  ),
+  Search: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+};
+
+function avatarColor(name: string): string {
+  // Deterministic hue from the nickname so each avatar has a stable color.
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
+  const hue = hash % 360;
+  return `hsl(${hue}, 65%, 50%)`;
+}
+
+function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  } catch {
+    return '';
+  }
+}
+
 const PopupApp: React.FC = () => {
+  const [tab, setTab] = useState<Tab>('banlist');
   const [banlist, setBanlist] = useState<BanlistItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [newBan, setNewBan] = useState({ faceit_name: '', reason: '', author: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<Settings>({
     apiUrl: DEFAULT_API_URL,
     apiKey: '',
@@ -78,10 +160,10 @@ const PopupApp: React.FC = () => {
             setError(
               `Could not reach ${apiUrl}. Open Settings and click Save to grant access.`
             );
-            setShowSettings(true);
+            setTab('settings');
           } else {
             setError(
-              `Could not reach the API at ${apiUrl}. Check that the server is running and the URL is correct.`
+              `Could not reach the API at ${apiUrl}. Check that the server is running.`
             );
           }
         }
@@ -125,7 +207,7 @@ const PopupApp: React.FC = () => {
 
     const apiKey = await getApiKey();
     if (!apiKey) {
-      setError('API key is not set. Open settings to configure it.');
+      setError('API key is not set. Open Settings to configure it.');
       return;
     }
 
@@ -161,7 +243,7 @@ const PopupApp: React.FC = () => {
 
     const apiKey = await getApiKey();
     if (!apiKey) {
-      setError('API key is not set. Open settings to configure it.');
+      setError('API key is not set. Open Settings to configure it.');
       return;
     }
 
@@ -203,7 +285,7 @@ const PopupApp: React.FC = () => {
   async function handleImportFile(file: File) {
     const apiKey = await getApiKey();
     if (!apiKey) {
-      setError('API key is not set. Open settings to configure it.');
+      setError('API key is not set. Open Settings to configure it.');
       return;
     }
 
@@ -223,7 +305,6 @@ const PopupApp: React.FC = () => {
       body = text;
       contentType = 'text/csv';
     } else {
-      // JSON: accept either {items: [...]} or a bare array of strings/objects.
       let parsed: unknown;
       try {
         parsed = JSON.parse(text);
@@ -276,6 +357,7 @@ const PopupApp: React.FC = () => {
       }
       await clearBanlistCache();
       await loadBanlist();
+      setTab('banlist');
     } catch (err) {
       setError(`Import failed: ${err}`);
     } finally {
@@ -300,7 +382,7 @@ const PopupApp: React.FC = () => {
       await clearBanlistCache();
       await loadBanlist();
       setSuccess('Settings saved');
-      setShowSettings(false);
+      setTab('banlist');
     } catch (err) {
       setError(`Failed to save settings: ${err}`);
     }
@@ -323,228 +405,294 @@ const PopupApp: React.FC = () => {
 
   return (
     <div className="popup-container">
-      <header className="popup-header">
-        <div className="popup-header-row">
-          <h1>🚫 PurgeQ Banlist</h1>
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="brand-icon"><Icon.Shield /></span>
+          <span className="brand-name">PurgeQ</span>
+        </div>
+        <nav className="nav">
           <button
-            type="button"
-            className="btn-icon"
+            className={`nav-item ${tab === 'banlist' ? 'is-active' : ''}`}
+            onClick={() => setTab('banlist')}
+          >
+            <Icon.List /> <span>Banlist</span>
+          </button>
+          <button
+            className={`nav-item ${tab === 'import' ? 'is-active' : ''}`}
+            onClick={() => setTab('import')}
+          >
+            <Icon.Upload /> <span>Import</span>
+          </button>
+          <button
+            className={`nav-item ${tab === 'settings' ? 'is-active' : ''}`}
             onClick={() => {
               setDraftSettings(settings);
-              setShowSettings((v) => !v);
+              setTab('settings');
             }}
-            title="Settings"
           >
-            ⚙️
+            <Icon.Settings /> <span>Settings</span>
           </button>
+        </nav>
+        <div className="sidebar-footer">
+          <div className="footer-label">Server</div>
+          <div className="footer-value" title={settings.apiUrl}>{settings.apiUrl}</div>
+          <div className="footer-value">Banned: {banlist.length}</div>
         </div>
-        <div className="stats">
-          Server: <strong>{settings.apiUrl}</strong> · Banned:{' '}
-          <strong>{banlist.length}</strong>
-        </div>
-      </header>
+      </aside>
 
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
+      <main className="main">
+        {error && <div className="alert alert-error">{error}</div>}
+        {success && <div className="alert alert-success">{success}</div>}
 
-      {showSettings ? (
-        <form className="settings-panel" onSubmit={handleSaveSettings}>
-          <h3>Settings</h3>
-          <label className="settings-label">
-            API server URL
-            <input
-              type="text"
-              className="input-field"
-              placeholder="http://192.168.1.47:8000"
-              value={draftSettings.apiUrl}
-              onChange={(e) =>
-                setDraftSettings({ ...draftSettings, apiUrl: e.target.value })
-              }
-            />
-            <span className="settings-hint">
-              Examples: http://localhost:8000, http://192.168.1.47:8000,
-              https://api.example.com
-            </span>
-          </label>
-          <label className="settings-label">
-            API key
-            <input
-              type="password"
-              className="input-field"
-              placeholder="X-API-Key value"
-              value={draftSettings.apiKey}
-              onChange={(e) =>
-                setDraftSettings({ ...draftSettings, apiKey: e.target.value })
-              }
-              autoComplete="off"
-            />
-            <span className="settings-hint">
-              Required to add or remove bans. Stored locally in chrome.storage.
-              On a public PurgeQ server, click <em>Get a key with Discord</em>{' '}
-              below to receive one.
-            </span>
-            <button
-              type="button"
-              className="btn btn-refresh"
-              onClick={handleGetKey}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              Get a key with Discord
-            </button>
-          </label>
-          <label className="settings-label">
-            Default author
-            <input
-              type="text"
-              className="input-field"
-              placeholder="Your name (used when banning from FACEIT)"
-              maxLength={32}
-              value={draftSettings.defaultAuthor}
-              onChange={(e) =>
-                setDraftSettings({ ...draftSettings, defaultAuthor: e.target.value })
-              }
-            />
-            <span className="settings-hint">
-              Used as the "author" when you click the inline ban button on a player card.
-            </span>
-          </label>
-          <div className="settings-actions">
-            <button type="button" className="btn btn-refresh" onClick={handleResetSettings}>
-              Reset to default
-            </button>
-            <button type="button" className="btn btn-refresh" onClick={handleTestConnection}>
-              Test connection
-            </button>
-            <button
-              type="button"
-              className="btn btn-refresh"
-              onClick={() => {
-                setDraftSettings(settings);
-                setShowSettings(false);
-              }}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="btn btn-primary">
-              Save
-            </button>
-          </div>
-        </form>
-      ) : (
-        <div className="popup-tabs">
-          <div className="tab-content">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Search by name or reason..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="search-input"
-              />
+        {tab === 'banlist' && (
+          <section className="page">
+            <h2 className="page-title">Banlist</h2>
+
+            <div className="toolbar">
+              <div className="search-wrap">
+                <span className="search-icon"><Icon.Search /></span>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search by name or reason..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
               <button
+                type="button"
+                className="icon-btn"
+                title="Refresh"
                 onClick={handleRefresh}
                 disabled={loading}
-                className="btn btn-refresh"
               >
-                🔄 Refresh
+                <Icon.Refresh />
               </button>
-              <label className="btn btn-refresh" title="Import a banlist (.json or .csv)">
-                📥 Import
-                <input
-                  type="file"
-                  accept=".json,.csv,.txt"
-                  style={{ display: 'none' }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = '';
-                    if (file) handleImportFile(file);
-                  }}
-                />
-              </label>
+              <button
+                type="button"
+                className="icon-btn"
+                title="Import a banlist"
+                onClick={() => setTab('import')}
+              >
+                <Icon.Upload />
+              </button>
             </div>
 
-            {loading ? (
-              <div className="loading">Loading...</div>
-            ) : (
-              <>
-                <div className="banlist-items">
-                  {filteredBanlist.length > 0 ? (
-                    filteredBanlist.map((item) => (
-                      <div key={item.id} className="ban-item">
-                        <div className="ban-item-header">
-                          <span className="player-name">{item.faceit_name}</span>
-                          <button
-                            onClick={() => handleDeleteBan(item.faceit_name)}
-                            className="btn btn-small btn-delete"
-                            title="Remove from banlist"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <div className="ban-item-body">
-                          <div className="ban-info">
-                            <strong>Reason:</strong> {item.reason}
-                          </div>
-                          <div className="ban-info">
-                            <strong>By:</strong> {item.author}
-                          </div>
-                          <div className="ban-date">
-                            {new Date(item.created_at).toLocaleDateString()}
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="empty-state">
-                      {searchQuery ? 'No results found' : 'No banned players'}
-                    </div>
-                  )}
+            <div className="banlist">
+              {loading ? (
+                <div className="empty">Loading...</div>
+              ) : filteredBanlist.length === 0 ? (
+                <div className="empty">
+                  {searchQuery ? 'No results found' : 'No banned players yet'}
                 </div>
-
-                <div className="add-ban-section">
-                  <h3>Add to Banlist</h3>
-                  <form onSubmit={handleAddBan} className="add-ban-form">
-                    <input
-                      type="text"
-                      placeholder="FACEIT username"
-                      value={newBan.faceit_name}
-                      onChange={(e) =>
-                        setNewBan({ ...newBan, faceit_name: e.target.value })
-                      }
-                      className="input-field"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Reason"
-                      value={newBan.reason}
-                      onChange={(e) =>
-                        setNewBan({ ...newBan, reason: e.target.value })
-                      }
-                      className="input-field"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Your name"
-                      value={newBan.author}
-                      onChange={(e) =>
-                        setNewBan({ ...newBan, author: e.target.value })
-                      }
-                      className="input-field"
-                    />
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="btn btn-primary"
+              ) : (
+                filteredBanlist.map((item) => (
+                  <div key={item.id} className="ban-card">
+                    <div
+                      className="avatar"
+                      style={{ background: avatarColor(item.faceit_name) }}
                     >
-                      Add Ban
+                      {item.faceit_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="ban-meta">
+                      <div className="ban-name">{item.faceit_name}</div>
+                      <div className="ban-line">
+                        <span className="muted">Reason:</span> {item.reason}
+                      </div>
+                      <div className="ban-line muted">
+                        By: {item.author} · {formatDate(item.created_at)}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="delete-btn"
+                      title="Remove from banlist"
+                      onClick={() => handleDeleteBan(item.faceit_name)}
+                    >
+                      <Icon.Trash />
                     </button>
-                  </form>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="add-ban">
+              <h3 className="section-title">Add to banlist</h3>
+              <form onSubmit={handleAddBan} className="form">
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="FACEIT username"
+                  value={newBan.faceit_name}
+                  onChange={(e) =>
+                    setNewBan({ ...newBan, faceit_name: e.target.value })
+                  }
+                />
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Reason"
+                  value={newBan.reason}
+                  onChange={(e) => setNewBan({ ...newBan, reason: e.target.value })}
+                />
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Your name"
+                  value={newBan.author}
+                  onChange={(e) => setNewBan({ ...newBan, author: e.target.value })}
+                />
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={loading}
+                >
+                  Add Ban
+                </button>
+              </form>
+            </div>
+          </section>
+        )}
+
+        {tab === 'import' && (
+          <section className="page">
+            <h2 className="page-title">Import</h2>
+            <p className="page-hint">
+              Bulk-import a list of FACEIT names from a JSON or CSV file. Existing
+              entries are skipped automatically.
+            </p>
+
+            <label className="dropzone">
+              <Icon.Upload />
+              <div className="dropzone-title">Choose a file</div>
+              <div className="dropzone-hint">.json or .csv (max 1000 names)</div>
+              <input
+                type="file"
+                accept=".json,.csv,.txt"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) handleImportFile(file);
+                }}
+              />
+            </label>
+
+            <div className="hint-block">
+              <strong>JSON</strong> — an array of names <code>["Watashi-", "Foo"]</code>,
+              an array of objects <code>{'[{"faceit_name": "Watashi-", "reason": "..."}]'}</code>,
+              or <code>{'{"items": [...]}'}</code>.
+              <br />
+              <strong>CSV</strong> — first row must be a header containing
+              <code>faceit_name</code> (or <code>name</code>); optional
+              <code>reason</code> and <code>author</code> columns are picked up too.
+              <br />
+              <strong>Author</strong> defaults to the value set in Settings, used
+              for any rows that don't carry their own.
+            </div>
+          </section>
+        )}
+
+        {tab === 'settings' && (
+          <section className="page">
+            <h2 className="page-title">Settings</h2>
+            <form onSubmit={handleSaveSettings} className="settings-form">
+              <label className="field">
+                <span className="field-label">API server URL</span>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="http://192.168.1.47:8000"
+                  value={draftSettings.apiUrl}
+                  onChange={(e) =>
+                    setDraftSettings({ ...draftSettings, apiUrl: e.target.value })
+                  }
+                />
+                <span className="field-hint">
+                  Examples: http://localhost:8000, http://192.168.1.47:8000,
+                  https://api.example.com
+                </span>
+              </label>
+
+              <label className="field">
+                <span className="field-label">API key</span>
+                <input
+                  type="password"
+                  className="input"
+                  placeholder="X-API-Key value"
+                  value={draftSettings.apiKey}
+                  onChange={(e) =>
+                    setDraftSettings({ ...draftSettings, apiKey: e.target.value })
+                  }
+                  autoComplete="off"
+                />
+                <span className="field-hint">
+                  Required to add or remove bans. Stored locally. On a public
+                  PurgeQ server, click the button below to receive one.
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-self-start"
+                  onClick={handleGetKey}
+                >
+                  Get a key with Discord
+                </button>
+              </label>
+
+              <label className="field">
+                <span className="field-label">Default author</span>
+                <input
+                  type="text"
+                  className="input"
+                  placeholder="Your name (used when banning from FACEIT)"
+                  maxLength={32}
+                  value={draftSettings.defaultAuthor}
+                  onChange={(e) =>
+                    setDraftSettings({
+                      ...draftSettings,
+                      defaultAuthor: e.target.value,
+                    })
+                  }
+                />
+                <span className="field-hint">
+                  Used as the "author" when you click the inline ban button on a
+                  player card.
+                </span>
+              </label>
+
+              <div className="settings-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={handleResetSettings}
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={handleTestConnection}
+                >
+                  Test connection
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setDraftSettings(settings);
+                    setTab('banlist');
+                  }}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary btn-inline">
+                  Save
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+      </main>
     </div>
   );
 };
