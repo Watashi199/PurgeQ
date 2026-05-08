@@ -32,16 +32,20 @@
 html,
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  width: 540px;
+  width: 560px;
+  height: 640px;
   background: var(--bg-base);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  font-size: 14px;
 }
 
 .popup-container {
   display: flex;
   height: 640px;
   background: var(--bg-base);
+  overflow: hidden;
 }
 
 /* ===================== Sidebar ===================== */
@@ -72,7 +76,7 @@ body {
 
 .brand-name {
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
   letter-spacing: 0.2px;
 }
@@ -87,12 +91,12 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 10px;
+  padding: 10px 11px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
   border-radius: 6px;
@@ -124,7 +128,7 @@ body {
 }
 
 .footer-label {
-  font-size: 10px;
+  font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.6px;
   color: var(--text-muted);
@@ -132,7 +136,7 @@ body {
 }
 
 .footer-value {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
   word-break: break-all;
   line-height: 1.4;
@@ -150,10 +154,11 @@ body {
 
 .alert {
   margin: 12px 16px 0;
-  padding: 9px 12px;
+  padding: 10px 13px;
   border-radius: 6px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
+  flex-shrink: 0;
 }
 
 .alert-error {
@@ -177,17 +182,19 @@ body {
 }
 
 .page-title {
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 14px;
+  flex-shrink: 0;
 }
 
 .page-hint {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin: -8px 0 14px;
   line-height: 1.5;
+  flex-shrink: 0;
 }
 
 /* ===================== Banlist ===================== */
@@ -196,6 +203,7 @@ body {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .search-wrap {
@@ -215,12 +223,12 @@ body {
 
 .search-input {
   width: 100%;
-  padding: 8px 12px 8px 30px;
+  padding: 9px 12px 9px 32px;
   border: 1px solid var(--border);
   background: var(--bg-input);
   color: var(--text-primary);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 13px;
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -261,7 +269,8 @@ body {
 }
 
 .banlist {
-  flex: 1;
+  flex: 1 1 0;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -277,7 +286,7 @@ body {
   flex: 1;
   min-height: 80px;
   color: var(--text-muted);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .ban-card {
@@ -296,14 +305,14 @@ body {
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 15px;
   color: white;
   flex-shrink: 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -316,16 +325,16 @@ body {
 
 .ban-name {
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-primary);
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .ban-line {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-secondary);
   line-height: 1.4;
   white-space: nowrap;
@@ -364,10 +373,11 @@ body {
 .add-ban {
   border-top: 1px solid var(--border);
   padding: 14px 0 16px;
+  flex-shrink: 0;
 }
 
 .section-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 10px;
@@ -380,12 +390,12 @@ body {
 }
 
 .input {
-  padding: 9px 12px;
+  padding: 10px 12px;
   border: 1px solid var(--border);
   background: var(--bg-input);
   color: var(--text-primary);
   border-radius: 6px;
-  font-size: 12px;
+  font-size: 13px;
   outline: none;
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -404,7 +414,7 @@ body {
   padding: 10px 14px;
   border: 1px solid transparent;
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
@@ -453,8 +463,8 @@ body {
 
 .btn-self-start {
   align-self: flex-start;
-  padding: 7px 11px;
-  font-size: 11.5px;
+  padding: 8px 12px;
+  font-size: 12.5px;
 }
 
 /* ===================== Import ===================== */
@@ -489,13 +499,13 @@ body {
 
 .dropzone-title {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .dropzone-hint {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
 }
 
@@ -504,7 +514,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px 14px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   line-height: 1.6;
   color: var(--text-secondary);
 }
@@ -518,7 +528,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 3px;
   padding: 1px 5px;
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: var(--orange-light);
   font-family: 'SF Mono', Consolas, monospace;
 }
@@ -532,6 +542,8 @@ body {
   overflow-y: auto;
   padding-bottom: 16px;
   padding-right: 4px;
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .field {
@@ -541,13 +553,13 @@ body {
 }
 
 .field-label {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .field-hint {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-muted);
   line-height: 1.5;
 }
@@ -561,8 +573,8 @@ body {
 }
 
 .settings-actions .btn {
-  padding: 8px 12px;
-  font-size: 12px;
+  padding: 9px 13px;
+  font-size: 13px;
 }
 
 /* ===================== Scrollbars ===================== */
