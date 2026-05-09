@@ -177,12 +177,20 @@ function createUnbanButton(nickname: string, ban: BanlistItem): HTMLButtonElemen
   btn.addEventListener('click', async (e) => {
     e.stopPropagation();
     e.preventDefault();
-    if (!confirm(`Remove ${nickname} from banlist?`)) return;
+    const ok = await openConfirmDialog(btn, {
+      title: `Unban ${nickname}`,
+      message: 'This player will no longer be highlighted.',
+      confirmLabel: 'Confirm',
+    });
+    if (!ok) return;
     btn.disabled = true;
     const result = await sendAction('REMOVE_BAN', { faceit_name: nickname });
     if (!result.success) {
-      alert(`PurgeQ: ${result.error || 'failed to remove ban'}`);
       btn.disabled = false;
+      await openAlertDialog(btn, {
+        title: 'Failed to unban',
+        message: result.error || 'Unknown error',
+      });
     }
   });
   return btn;
@@ -306,6 +314,147 @@ function buildShieldIcon(): SVGElement {
   svg.appendChild(check);
 
   return svg;
+}
+
+interface DialogOptions {
+  title: string;
+  message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}
+
+/**
+ * Floating confirmation dialog matching the inline ban form. Resolves to
+ * true if the user clicks Confirm, false if they cancel or dismiss.
+ */
+function openConfirmDialog(
+  anchor: HTMLElement,
+  opts: DialogOptions
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const root = buildDialogShell(opts);
+
+    let settled = false;
+    const settle = (value: boolean) => {
+      if (settled) return;
+      settled = true;
+      closeFloating();
+      resolve(value);
+    };
+
+    const cancel = makeButton(opts.cancelLabel ?? 'Cancel', false, () =>
+      settle(false)
+    );
+    const confirm = makeButton(opts.confirmLabel ?? 'Confirm', true, () =>
+      settle(true)
+    );
+    root.actions.appendChild(cancel);
+    root.actions.appendChild(confirm);
+
+    showFloating(root.form, anchor);
+    confirm.focus();
+
+    // Floating dismiss (click outside / Escape) counts as cancel.
+    const observer = new MutationObserver(() => {
+      if (!document.body.contains(root.form)) {
+        observer.disconnect();
+        settle(false);
+      }
+    });
+    observer.observe(document.body, { childList: true });
+  });
+}
+
+/**
+ * Floating alert dialog with a single OK button. Resolves once the user
+ * acknowledges or dismisses it.
+ */
+function openAlertDialog(
+  anchor: HTMLElement,
+  opts: DialogOptions
+): Promise<void> {
+  return new Promise((resolve) => {
+    const root = buildDialogShell(opts);
+
+    let settled = false;
+    const settle = () => {
+      if (settled) return;
+      settled = true;
+      closeFloating();
+      resolve();
+    };
+
+    const ok = makeButton(opts.confirmLabel ?? 'OK', true, settle);
+    root.actions.appendChild(ok);
+
+    showFloating(root.form, anchor);
+    ok.focus();
+
+    const observer = new MutationObserver(() => {
+      if (!document.body.contains(root.form)) {
+        observer.disconnect();
+        settle();
+      }
+    });
+    observer.observe(document.body, { childList: true });
+  });
+}
+
+function buildDialogShell(opts: DialogOptions): {
+  form: HTMLDivElement;
+  actions: HTMLDivElement;
+} {
+  closeFloating();
+
+  const form = document.createElement('div');
+  form.className = 'purgeq-floating purgeq-form';
+  form.addEventListener('click', (e) => e.stopPropagation());
+  form.addEventListener('mousedown', (e) => e.stopPropagation());
+
+  const header = document.createElement('div');
+  header.className = 'purgeq-form-header';
+
+  const iconWrap = document.createElement('span');
+  iconWrap.className = 'purgeq-form-icon';
+  iconWrap.setAttribute('aria-hidden', 'true');
+  iconWrap.appendChild(buildShieldIcon());
+
+  const titleEl = document.createElement('span');
+  titleEl.className = 'purgeq-form-title';
+  titleEl.textContent = opts.title;
+
+  header.appendChild(iconWrap);
+  header.appendChild(titleEl);
+  form.appendChild(header);
+
+  if (opts.message) {
+    const message = document.createElement('div');
+    message.className = 'purgeq-form-message';
+    message.textContent = opts.message;
+    form.appendChild(message);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'purgeq-form-actions';
+  form.appendChild(actions);
+
+  return { form, actions };
+}
+
+function makeButton(
+  label: string,
+  primary: boolean,
+  onClick: () => void
+): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = label;
+  btn.className = `purgeq-btn ${primary ? 'purgeq-btn-primary' : 'purgeq-btn-secondary'}`;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    onClick();
+  });
+  return btn;
 }
 
 let floatingDismiss: ((ev: Event) => void) | null = null;
@@ -526,6 +675,13 @@ function injectStyles() {
     .purgeq-input:focus {
       border-color: #ff5500;
       box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.18);
+    }
+
+    .purgeq-form-message {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #a3a3a8;
+      margin-bottom: 16px;
     }
 
     .purgeq-form-actions {
