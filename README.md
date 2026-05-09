@@ -4,7 +4,8 @@
 
 PurgeQ lets you flag players you never want to queue with again. The names are highlighted directly on FACEIT player cards, in any lobby, match room, party, or profile page — so you spot a known troll before the match even starts. Build your list solo, or share it with your team and edit it together.
 
-![PurgeQ Interface](https://scrn.wsrv.xyz/u/SpVZvL.png)
+![PurgeQ on FACEIT](https://scrn.wsrv.xyz/u/SpVZvL.png)
+![PurgeQ interface](https://scrn.wsrv.xyz/u/MkEqJN.png)
 
 Two parts:
 
