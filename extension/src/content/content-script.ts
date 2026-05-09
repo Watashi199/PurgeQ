@@ -543,8 +543,9 @@ function injectStyles() {
     .purgeq-form-error {
       color: #fca5a5;
       font-size: 11.5px;
-      margin-top: 8px;
-      min-height: 14px;
+    }
+    .purgeq-form-error:not(:empty) {
+      margin-top: 10px;
     }
   `;
   document.head.appendChild(style);
