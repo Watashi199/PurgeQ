@@ -210,10 +210,19 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
   form.addEventListener('click', (e) => e.stopPropagation());
   form.addEventListener('mousedown', (e) => e.stopPropagation());
 
-  const title = document.createElement('div');
-  title.className = 'purgeq-form-title';
-  title.textContent = `Ban ${nickname}`;
-  form.appendChild(title);
+  const header = document.createElement('div');
+  header.className = 'purgeq-form-header';
+  header.innerHTML = `
+    <span class="purgeq-form-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        <path d="m9 12 2 2 4-4"/>
+      </svg>
+    </span>
+    <span class="purgeq-form-title">Ban ${escapeHtml(nickname)}</span>
+  `;
+  form.appendChild(header);
 
   const reason = document.createElement('input');
   reason.type = 'text';
@@ -222,13 +231,6 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
   reason.required = true;
   reason.className = 'purgeq-input';
   form.appendChild(reason);
-
-  const author = document.createElement('input');
-  author.type = 'text';
-  author.placeholder = 'Author (defaults to settings)';
-  author.maxLength = 32;
-  author.className = 'purgeq-input';
-  form.appendChild(author);
 
   const actions = document.createElement('div');
   actions.className = 'purgeq-form-actions';
@@ -259,21 +261,31 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
     e.preventDefault();
     error.textContent = '';
     submit.disabled = true;
+    // Author intentionally omitted — the service worker falls back to the
+    // defaultAuthor stored in extension settings.
     const result = await sendAction('ADD_BAN', {
       faceit_name: nickname,
       reason: reason.value.trim(),
-      author: author.value.trim(),
     });
     submit.disabled = false;
     if (result.success) {
       closeFloating();
     } else {
-      error.textContent = result.error || 'Failed to add ban';
+      const msg = result.error || 'Failed to add ban';
+      error.textContent = /author/i.test(msg)
+        ? 'Set a default author in the extension popup → Settings.'
+        : msg;
     }
   });
 
   showFloating(form, anchor);
   reason.focus();
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] as string
+  );
 }
 
 let floatingDismiss: ((ev: Event) => void) | null = null;
@@ -439,62 +451,100 @@ function injectStyles() {
 
     .purgeq-floating {
       position: fixed;
-      min-width: 240px;
-      max-width: 320px;
-      background: #1f2937;
-      color: #f3f4f6;
-      padding: 12px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-family: system-ui, sans-serif;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-      border: 1px solid #374151;
+      min-width: 280px;
+      max-width: 340px;
+      background: #17171a;
+      color: #f5f5f7;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      border: 1px solid #25252a;
       z-index: 2147483647;
+    }
+
+    .purgeq-form-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .purgeq-form-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #ff5500;
     }
 
     .purgeq-form-title {
       font-weight: 700;
-      margin-bottom: 6px;
-      font-size: 13px;
+      font-size: 16px;
+      letter-spacing: 0.1px;
+      color: #f5f5f7;
     }
 
     .purgeq-input {
       display: block;
       width: 100%;
-      padding: 6px 8px;
-      margin-bottom: 6px;
-      border: 1px solid #374151;
-      background: #111827;
-      color: #f3f4f6;
-      border-radius: 4px;
-      font-size: 12px;
-      font-family: system-ui, sans-serif;
+      padding: 11px 13px;
+      margin-bottom: 12px;
+      border: 1px solid #2a2a30;
+      background: #0e0e10;
+      color: #f5f5f7;
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
       box-sizing: border-box;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .purgeq-input::placeholder { color: #6b6b72; }
+
+    .purgeq-input:focus {
+      border-color: #ff5500;
+      box-shadow: 0 0 0 3px rgba(255, 85, 0, 0.18);
     }
 
     .purgeq-form-actions {
       display: flex;
-      gap: 6px;
+      gap: 8px;
       justify-content: flex-end;
+      margin-top: 4px;
     }
 
     .purgeq-btn {
-      padding: 6px 10px;
-      border: none;
-      border-radius: 4px;
-      font-size: 12px;
+      padding: 9px 18px;
+      border: 1px solid transparent;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
-      font-family: system-ui, sans-serif;
+      font-family: inherit;
+      transition: filter 0.15s, transform 0.1s, background 0.15s;
     }
 
-    .purgeq-btn-primary { background: #ef4444; color: white; }
-    .purgeq-btn-secondary { background: #374151; color: #f3f4f6; }
-    .purgeq-btn:disabled { opacity: 0.6; cursor: wait; }
+    .purgeq-btn:hover:not(:disabled) { filter: brightness(1.08); }
+    .purgeq-btn:active:not(:disabled) { transform: translateY(1px); }
+
+    .purgeq-btn-primary {
+      background: linear-gradient(135deg, #ff5500 0%, #cc3a00 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(255, 85, 0, 0.35);
+    }
+    .purgeq-btn-secondary {
+      background: #1d1d21;
+      color: #f5f5f7;
+      border-color: #2a2a30;
+    }
+    .purgeq-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .purgeq-form-error {
       color: #fca5a5;
-      font-size: 11px;
-      margin-top: 6px;
+      font-size: 11.5px;
+      margin-top: 8px;
       min-height: 14px;
     }
   `;
