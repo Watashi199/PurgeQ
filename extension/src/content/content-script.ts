@@ -451,11 +451,11 @@ function injectStyles() {
 
     .purgeq-floating {
       position: fixed;
-      min-width: 300px;
-      max-width: 360px;
+      min-width: 320px;
+      max-width: 380px;
       background: #17171a;
       color: #f5f5f7;
-      padding: 18px 20px 20px;
+      padding: 22px 24px;
       border-radius: 12px;
       font-size: 13px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -468,7 +468,7 @@ function injectStyles() {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
 
     .purgeq-form-icon {
@@ -489,7 +489,7 @@ function injectStyles() {
       display: block;
       width: 100%;
       padding: 11px 13px;
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       border: 1px solid #2a2a30;
       background: #0e0e10;
       color: #f5f5f7;
