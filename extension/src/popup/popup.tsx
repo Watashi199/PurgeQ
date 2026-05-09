@@ -139,13 +139,12 @@ const PopupApp: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (error || success) {
-      const timer = setTimeout(() => {
-        setError('');
-        setSuccess('');
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!error && !success) return;
+    const timer = setTimeout(() => {
+      setError('');
+      setSuccess('');
+    }, 3000);
+    return () => clearTimeout(timer);
   }, [error, success]);
 
   async function loadBanlist() {
