@@ -14,6 +14,10 @@ interface BanlistItem {
 
 const SCAN_DEBOUNCE_MS = 250;
 const PROCESSED_ATTR = 'data-purgeq-processed';
+// Marker on banned cards. Using a data-attribute (not a class) because
+// FACEIT re-renders cards with animated frames frequently and React wipes
+// our injected className on each re-render. Custom data-* attributes survive.
+const BANNED_ATTR = 'data-purgeq-banned';
 // FACEIT renders player cards differently across pages. Match-room cards use
 // `data-testid="playerCard"`; party/lobby cards use `data-playercard="true"`.
 const CARD_SELECTOR = '[data-testid="playerCard"], [data-playercard="true"]';
@@ -99,8 +103,8 @@ async function loadBanlist(refreshDom = true) {
     document
       .querySelectorAll('.purgeq-card-action, .purgeq-bg-overlay')
       .forEach((el) => el.remove());
-    document.querySelectorAll('.purgeq-banned-card').forEach((el) => {
-      el.classList.remove('purgeq-banned-card');
+    document.querySelectorAll(`[${BANNED_ATTR}]`).forEach((el) => {
+      el.removeAttribute(BANNED_ATTR);
     });
     scanCards();
   }
@@ -148,7 +152,7 @@ function processCard(card: HTMLElement) {
 
   const banned = isPlayerBanned(nickname);
   if (banned) {
-    card.classList.add('purgeq-banned-card');
+    card.setAttribute(BANNED_ATTR, 'true');
     ensureBgOverlay(card);
     card.appendChild(createUnbanButton(nickname, banned));
   } else {
@@ -539,7 +543,7 @@ function injectStyles() {
   const style = document.createElement('style');
   style.id = 'purgeq-styles';
   style.textContent = `
-    .purgeq-banned-card {
+    [data-purgeq-banned="true"] {
       outline: 2px solid #ef4444 !important;
       outline-offset: 2px;
       border-radius: 8px;
@@ -552,7 +556,7 @@ function injectStyles() {
       50% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5), 0 0 32px rgba(239, 68, 68, 0.7); }
     }
 
-    .purgeq-banned-card [class*="Nickname"] {
+    [data-purgeq-banned="true"] [class*="Nickname"] {
       color: #ef4444 !important;
     }
 
