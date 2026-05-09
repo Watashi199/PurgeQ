@@ -38,8 +38,8 @@ You run a small server (Postgres + Redis + the API) and load the extension into 
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/Watashi199/PurgeQ-Renew.git
-cd PurgeQ-Renew
+git clone https://github.com/Watashi199/PurgeQ.git
+cd PurgeQ
 cp .env.example .env
 ```
 

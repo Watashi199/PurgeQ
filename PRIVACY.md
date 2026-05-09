@@ -78,7 +78,7 @@ PurgeQ is intended for FACEIT users, who must be at least 13 years old per FACEI
 
 PurgeQ is an open-source project. Issues, feature requests and security reports go through the public issue tracker:
 
-<https://github.com/Watashi199/PurgeQ-Renew/issues>
+<https://github.com/Watashi199/PurgeQ/issues>
 
 ## Changes to this policy
 
