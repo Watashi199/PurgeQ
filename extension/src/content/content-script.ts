@@ -451,11 +451,11 @@ function injectStyles() {
 
     .purgeq-floating {
       position: fixed;
-      min-width: 320px;
-      max-width: 380px;
+      min-width: 300px;
+      max-width: 360px;
       background: #17171a;
       color: #f5f5f7;
-      padding: 22px 24px;
+      padding: 14px 18px;
       border-radius: 12px;
       font-size: 13px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
