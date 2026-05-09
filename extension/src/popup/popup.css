@@ -33,7 +33,7 @@ html,
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
   width: 560px;
-  height: 640px;
+  height: 600px;
   background: var(--bg-base);
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
@@ -43,7 +43,7 @@ body {
 
 .popup-container {
   display: flex;
-  height: 640px;
+  height: 600px;
   background: var(--bg-base);
   overflow: hidden;
 }
