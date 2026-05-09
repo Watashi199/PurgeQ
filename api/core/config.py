@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     # API
     API_V1_STR: str = "/api/v1"
     API_TITLE: str = "PurgeQ FACEIT Banlist API"
-    API_VERSION: str = "1.0.0"
+    API_VERSION: str = "2.0.0"
     DEBUG: bool = False
 
     # Database
