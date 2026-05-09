@@ -3,6 +3,12 @@
   "name": "PurgeQ - FACEIT Banlist",
   "version": "2.0.0",
   "description": "Real-time FACEIT player banlist checker with offline support",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "purgeq@watashi.dev",
+      "strict_min_version": "121.0"
+    }
+  },
   "permissions": [
     "storage",
     "alarms"
