@@ -31,11 +31,10 @@ You run a small server (Postgres + Redis + the API) and load the extension into 
 
 ### Requirements
 
-- **Docker** + Docker Compose
+- **Docker** + Docker Compose (for the server)
 - A Chromium-based browser (Chrome, Edge, Brave, Opera…) or Firefox
-- **Node.js 18+** (only needed once, to build the extension)
 
-### Option A — One-line install (recommended)
+### 1. Run the server
 
 ```bash
 git clone https://github.com/Watashi199/PurgeQ.git
@@ -43,49 +42,45 @@ cd PurgeQ
 ./install.sh
 ```
 
-The installer generates a random API key, writes `.env`, brings up Postgres + Redis + the API, and builds the extension if Node is installed. At the end it prints the URL + key you'll paste into the extension's Settings tab.
+The installer generates a random API key, writes `.env`, and brings up Postgres + Redis + the API on `http://localhost:8000`. At the end it prints the URL + key you'll paste into the extension's Settings tab. Re-running is safe — an existing `.env` is preserved.
 
-Re-running is safe: an existing `.env` is preserved.
+If you want it reachable from your LAN (so other devices on your Wi-Fi can use it), note the host's IP, e.g. `http://192.168.1.10:8000`. Sanity check: `http://<host>:8000/docs` should show the Swagger UI.
 
-### Option B — Manual install
-
-#### 1. Clone and configure
+<details>
+<summary>Manual install (if you'd rather not run a script)</summary>
 
 ```bash
-git clone https://github.com/Watashi199/PurgeQ.git
-cd PurgeQ
 cp .env.example .env
-```
-
-Open `.env` and **change `VALID_API_KEYS`** to a secret of your choice. This is the password you'll paste into the extension — pick something long and random.
-
-```env
-VALID_API_KEYS=["pick-a-long-random-string"]
-```
-
-#### 2. Start the server
-
-```bash
+# Edit VALID_API_KEYS in .env to a long random secret
 docker compose up -d
 ```
 
-That spins up Postgres, Redis, and the API on `http://localhost:8000`. The first start runs the database migrations automatically.
+</details>
 
-Sanity check: open `http://localhost:8000/docs` — you should see the Swagger UI.
+### 2. Get the extension
 
-If you want it reachable from your LAN (so other devices on your Wi-Fi can use it), note the host's IP, e.g. `http://192.168.1.10:8000`.
+Grab the right zip from the [latest release](https://github.com/Watashi199/PurgeQ/releases/latest):
 
-#### 3. Build the extension
+- **Chrome / Edge / Brave / Opera** → `purgeq-<version>.zip`
+- **Firefox** → `purgeq-firefox-<version>.zip`
+
+<details>
+<summary>Or build it yourself from source</summary>
+
+Needs Node.js 18+:
 
 ```bash
 cd extension
 npm install
-npm run build
+npm run package          # builds Chrome zip → extension/purgeq-<version>.zip
+npm run package:firefox  # builds Firefox zip → extension/purgeq-firefox-<version>.zip
 ```
 
-This produces `extension/dist/` — the folder you'll load into your browser.
+The plain build output lives in `extension/dist/` if you'd rather load that as an unpacked extension while developing.
 
-### 4. Load it in your browser
+</details>
+
+### 3. Load it in your browser
 
 **Chromium:**
 

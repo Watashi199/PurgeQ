@@ -82,23 +82,19 @@ for i in 1 2 3 4 5 6 7 8 9 10; do
   sleep 1
 done
 
-# ─── 4. Extension build (optional) ─────────────────────────────────────────
-if command -v node >/dev/null 2>&1 && [ -d extension ]; then
-  bold "Building the browser extension…"
-  (cd extension && npm install --silent && npm run build >/dev/null)
-  ok "Extension built in extension/dist/"
-else
-  note "Skipping extension build (Node.js not installed or extension/ missing)"
-  note "You can build it later with: cd extension && npm install && npm run build"
-fi
-
-# ─── 5. Done ───────────────────────────────────────────────────────────────
+# ─── 4. Done ───────────────────────────────────────────────────────────────
 echo
-bold "All set."
+bold "Server is ready."
 echo
 echo "  • API:           http://localhost:8000"
 echo "  • Swagger UI:    http://localhost:8000/docs"
-echo "  • Extension:     load extension/dist as an unpacked extension"
+echo
+bold "Get the browser extension:"
+echo "  • Download the latest release zip:"
+echo "    https://github.com/Watashi199/PurgeQ/releases/latest"
+echo "  • Chrome / Edge / Brave:  use purgeq-<version>.zip"
+echo "  • Firefox:                use purgeq-firefox-<version>.zip"
+echo "  • Then load it as an unpacked / temporary add-on in your browser."
 if [ -n "${GENERATED_KEY}" ]; then
   echo
   bold "Save these in the extension popup → Settings:"
