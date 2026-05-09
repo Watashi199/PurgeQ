@@ -35,7 +35,21 @@ You run a small server (Postgres + Redis + the API) and load the extension into 
 - A Chromium-based browser (Chrome, Edge, Brave, Opera…) or Firefox
 - **Node.js 18+** (only needed once, to build the extension)
 
-### 1. Clone and configure
+### Option A — One-line install (recommended)
+
+```bash
+git clone https://github.com/Watashi199/PurgeQ.git
+cd PurgeQ
+./install.sh
+```
+
+The installer generates a random API key, writes `.env`, brings up Postgres + Redis + the API, and builds the extension if Node is installed. At the end it prints the URL + key you'll paste into the extension's Settings tab.
+
+Re-running is safe: an existing `.env` is preserved.
+
+### Option B — Manual install
+
+#### 1. Clone and configure
 
 ```bash
 git clone https://github.com/Watashi199/PurgeQ.git
@@ -49,7 +63,7 @@ Open `.env` and **change `VALID_API_KEYS`** to a secret of your choice. This is 
 VALID_API_KEYS=["pick-a-long-random-string"]
 ```
 
-### 2. Start the server
+#### 2. Start the server
 
 ```bash
 docker compose up -d
@@ -61,7 +75,7 @@ Sanity check: open `http://localhost:8000/docs` — you should see the Swagger U
 
 If you want it reachable from your LAN (so other devices on your Wi-Fi can use it), note the host's IP, e.g. `http://192.168.1.10:8000`.
 
-### 3. Build the extension
+#### 3. Build the extension
 
 ```bash
 cd extension
