@@ -451,11 +451,11 @@ function injectStyles() {
 
     .purgeq-floating {
       position: fixed;
-      min-width: 280px;
-      max-width: 340px;
+      min-width: 300px;
+      max-width: 360px;
       background: #17171a;
       color: #f5f5f7;
-      padding: 16px;
+      padding: 18px 20px 20px;
       border-radius: 12px;
       font-size: 13px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -468,7 +468,7 @@ function injectStyles() {
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 14px;
+      margin-bottom: 16px;
     }
 
     .purgeq-form-icon {
@@ -489,7 +489,7 @@ function injectStyles() {
       display: block;
       width: 100%;
       padding: 11px 13px;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
       border: 1px solid #2a2a30;
       background: #0e0e10;
       color: #f5f5f7;
@@ -510,9 +510,8 @@ function injectStyles() {
 
     .purgeq-form-actions {
       display: flex;
-      gap: 8px;
+      gap: 10px;
       justify-content: flex-end;
-      margin-top: 4px;
     }
 
     .purgeq-btn {
