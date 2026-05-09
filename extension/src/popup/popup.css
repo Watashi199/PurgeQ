@@ -533,6 +533,62 @@ body {
   font-family: 'SF Mono', Consolas, monospace;
 }
 
+/* ===================== Export ===================== */
+
+.export-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.export-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 22px 16px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.export-card:hover:not(:disabled) {
+  border-color: var(--orange);
+  color: var(--orange-light);
+  background: rgba(255, 85, 0, 0.06);
+}
+
+.export-card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.export-icon {
+  display: inline-flex;
+}
+
+.export-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.export-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+
+.export-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
 /* ===================== Settings ===================== */
 
 .settings-form {

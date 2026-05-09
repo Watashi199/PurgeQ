@@ -20,7 +20,7 @@ import {
   saveSettings,
 } from '../shared/settings';
 
-type Tab = 'banlist' | 'import' | 'settings';
+type Tab = 'banlist' | 'import' | 'export' | 'settings';
 
 const Icon = {
   Shield: () => (
@@ -47,6 +47,14 @@ const Icon = {
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="17 8 12 3 7 8" />
       <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  ),
+  Download: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   ),
   Settings: () => (
@@ -392,6 +400,58 @@ const PopupApp: React.FC = () => {
     setDraftSettings({ apiUrl: DEFAULT_API_URL, apiKey: '', defaultAuthor: '' });
   }
 
+  function handleExport(format: 'json' | 'csv') {
+    if (banlist.length === 0) {
+      setError('Banlist is empty, nothing to export.');
+      return;
+    }
+
+    const stamp = new Date().toISOString().slice(0, 10);
+    let content: string;
+    let mime: string;
+    let filename: string;
+
+    if (format === 'json') {
+      content = JSON.stringify(
+        {
+          exported_at: new Date().toISOString(),
+          items: banlist.map((b) => ({
+            faceit_name: b.faceit_name,
+            reason: b.reason,
+            author: b.author,
+            created_at: b.created_at,
+          })),
+        },
+        null,
+        2
+      );
+      mime = 'application/json';
+      filename = `purgeq-banlist-${stamp}.json`;
+    } else {
+      const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
+      const rows = ['faceit_name,reason,author,created_at'];
+      for (const b of banlist) {
+        rows.push(
+          [b.faceit_name, b.reason, b.author, b.created_at].map(escape).join(',')
+        );
+      }
+      content = rows.join('\n');
+      mime = 'text/csv;charset=utf-8';
+      filename = `purgeq-banlist-${stamp}.csv`;
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setSuccess(`Exported ${banlist.length} entries as ${format.toUpperCase()}`);
+  }
+
   function handleGetKey() {
     const url = (draftSettings.apiUrl.trim() || DEFAULT_API_URL).replace(/\/+$/, '');
     chrome.tabs.create({ url: `${url}/signup` });
@@ -422,6 +482,12 @@ const PopupApp: React.FC = () => {
             onClick={() => setTab('import')}
           >
             <Icon.Upload /> <span>Import</span>
+          </button>
+          <button
+            className={`nav-item ${tab === 'export' ? 'is-active' : ''}`}
+            onClick={() => setTab('export')}
+          >
+            <Icon.Download /> <span>Export</span>
           </button>
           <button
             className={`nav-item ${tab === 'settings' ? 'is-active' : ''}`}
@@ -589,6 +655,45 @@ const PopupApp: React.FC = () => {
               <br />
               <strong>Author</strong> defaults to the value set in Settings, used
               for any rows that don't carry their own.
+            </div>
+          </section>
+        )}
+
+        {tab === 'export' && (
+          <section className="page">
+            <h2 className="page-title">Export</h2>
+            <p className="page-hint">
+              Download the current banlist as a JSON or CSV file. The JSON
+              format round-trips through Import; the CSV is convenient for
+              spreadsheets.
+            </p>
+
+            <div className="export-grid">
+              <button
+                type="button"
+                className="export-card"
+                onClick={() => handleExport('json')}
+                disabled={banlist.length === 0}
+              >
+                <span className="export-icon"><Icon.Download /></span>
+                <span className="export-title">JSON</span>
+                <span className="export-sub">{banlist.length} entries</span>
+              </button>
+              <button
+                type="button"
+                className="export-card"
+                onClick={() => handleExport('csv')}
+                disabled={banlist.length === 0}
+              >
+                <span className="export-icon"><Icon.Download /></span>
+                <span className="export-title">CSV</span>
+                <span className="export-sub">{banlist.length} entries</span>
+              </button>
+            </div>
+
+            <div className="hint-block">
+              The file lands in your usual download folder. Re-importing it
+              later restores the same names — duplicates will be skipped.
             </div>
           </section>
         )}
