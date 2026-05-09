@@ -44,10 +44,14 @@ def upgrade() -> None:
             nullable=True,
         ),
     )
+    # Inline the UUID literal with an explicit ::uuid cast — bound parameters
+    # arrive as VARCHAR over asyncpg and Postgres won't implicitly coerce
+    # VARCHAR → UUID in DDL-adjacent statements.
     op.execute(
         sa.text(
-            "UPDATE banlist_items SET namespace_id = :ns WHERE namespace_id IS NULL"
-        ).bindparams(ns=SELF_HOSTED_NAMESPACE_ID)
+            f"UPDATE banlist_items SET namespace_id = '{SELF_HOSTED_NAMESPACE_ID}'::uuid "
+            "WHERE namespace_id IS NULL"
+        )
     )
     op.alter_column("banlist_items", "namespace_id", nullable=False)
     op.create_index("ix_banlist_items_namespace_id", "banlist_items", ["namespace_id"])
