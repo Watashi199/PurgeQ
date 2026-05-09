@@ -23,6 +23,7 @@ const out = path.join(root, `purgeq-source-${manifest.version}.zip`);
 // Allow-list approach: ship only the files reviewers actually need.
 const include = [
   'manifest.json',
+  'manifest.firefox.json',
   'package.json',
   'package-lock.json',
   'vite.config.ts',

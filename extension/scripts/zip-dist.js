@@ -33,10 +33,35 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const distDir = path.join(root, 'dist');
 
-const manifest = JSON.parse(
-  await fs.readFile(path.join(distDir, 'manifest.json'), 'utf-8')
-);
-const out = path.join(root, `purgeq-${manifest.version}.zip`);
+// Optional --firefox flag merges Firefox-only manifest keys (background.scripts
+// fallback, browser_specific_settings) before zipping. The base manifest stays
+// Chrome-compatible; Chrome rejects background.scripts in MV3.
+const isFirefox = process.argv.includes('--firefox');
+
+const manifestPath = path.join(distDir, 'manifest.json');
+const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8'));
+
+if (isFirefox) {
+  const firefoxOverrides = JSON.parse(
+    await fs.readFile(path.join(root, 'manifest.firefox.json'), 'utf-8')
+  );
+  for (const [key, value] of Object.entries(firefoxOverrides)) {
+    if (
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      typeof manifest[key] === 'object' &&
+      !Array.isArray(manifest[key])
+    ) {
+      manifest[key] = { ...manifest[key], ...value };
+    } else {
+      manifest[key] = value;
+    }
+  }
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+}
+
+const suffix = isFirefox ? '-firefox' : '';
+const out = path.join(root, `purgeq${suffix}-${manifest.version}.zip`);
 
 async function* walk(dir, base = '') {
   const entries = await fs.readdir(dir, { withFileTypes: true });

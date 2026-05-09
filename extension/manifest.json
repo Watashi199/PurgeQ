@@ -3,15 +3,6 @@
   "name": "PurgeQ - FACEIT Banlist",
   "version": "2.0.0",
   "description": "Real-time FACEIT player banlist checker with offline support",
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "purgeq@wsrv.xyz",
-      "strict_min_version": "128.0",
-      "data_collection_permissions": {
-        "required": ["authenticationInfo", "websiteContent"]
-      }
-    }
-  },
   "permissions": [
     "storage",
     "alarms"
@@ -25,7 +16,6 @@
   ],
   "background": {
     "service_worker": "background.js",
-    "scripts": ["background.js"],
     "type": "module"
   },
   "content_scripts": [

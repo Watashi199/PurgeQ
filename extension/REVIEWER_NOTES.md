@@ -4,14 +4,29 @@ This source archive corresponds to the published `purgeq-<version>.zip` artifact
 To reproduce the exact distribution package, run the following from the
 extracted source directory:
 
+For the **Firefox** build:
+
 ```bash
 npm install
+npm run package:firefox
+```
+
+The resulting `purgeq-firefox-<version>.zip` is byte-similar to the submitted
+archive (exact byte equality is not guaranteed because zip metadata embeds
+modification timestamps).
+
+For the **Chrome** build (provided here for completeness):
+
+```bash
 npm run package
 ```
 
-The resulting `purgeq-<version>.zip` (sibling of `dist/`) will be byte-similar
-to the submitted distribution archive (exact byte equality is not guaranteed
-because zip metadata embeds modification timestamps).
+Both commands share `npm run build` (Vite); they differ only in the manifest
+that ends up in the zip. Chrome MV3 rejects `background.scripts`, so the base
+`manifest.json` is Chrome-compatible. The `--firefox` flag merges
+`manifest.firefox.json` into it before zipping, adding the
+`browser_specific_settings` block and the `background.scripts` fallback that
+the AMO validator requires.
 
 ## Environment
 
