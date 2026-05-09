@@ -707,14 +707,14 @@ const PopupApp: React.FC = () => {
                 <input
                   type="text"
                   className="input"
-                  placeholder="http://192.168.1.47:8000"
+                  placeholder="http://localhost:8000"
                   value={draftSettings.apiUrl}
                   onChange={(e) =>
                     setDraftSettings({ ...draftSettings, apiUrl: e.target.value })
                   }
                 />
                 <span className="field-hint">
-                  Examples: http://localhost:8000, http://192.168.1.47:8000,
+                  Examples: http://localhost:8000, http://192.168.1.10:8000,
                   https://api.example.com
                 </span>
               </label>

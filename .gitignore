@@ -1,0 +1,52 @@
+# Python
+.venv/
+*.pyc
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Node / build artifacts
+node_modules/
+dist/
+build/
+*.zip
+*.tgz
+
+# Secrets & local config — NEVER commit real values
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+*.pem
+*.key
+*.crt
+secrets/
+credentials*
+
+# Logs
+*.log
+logs/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.claude/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+.git/

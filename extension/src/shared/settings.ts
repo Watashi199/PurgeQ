@@ -5,7 +5,7 @@
 const SETTINGS_KEY = 'purgeq_settings';
 
 export const DEFAULT_API_URL =
-  (import.meta as any).env?.VITE_API_URL || 'http://192.168.1.47:8000';
+  (import.meta as any).env?.VITE_API_URL || 'http://localhost:8000';
 
 export interface Settings {
   apiUrl: string;

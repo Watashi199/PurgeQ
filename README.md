@@ -59,7 +59,7 @@ That spins up Postgres, Redis, and the API on `http://localhost:8000`. The first
 
 Sanity check: open `http://localhost:8000/docs` — you should see the Swagger UI.
 
-If you want it reachable from your LAN (so other devices on your Wi-Fi can use it), note the host's IP, e.g. `http://192.168.1.47:8000`.
+If you want it reachable from your LAN (so other devices on your Wi-Fi can use it), note the host's IP, e.g. `http://192.168.1.10:8000`.
 
 ### 3. Build the extension
 
