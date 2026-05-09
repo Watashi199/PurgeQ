@@ -22,9 +22,12 @@ git checkout -b feature/your-feature-name
 ```
 
 ### 3. Set Up Development Environment
+
 ```bash
-# See QUICKSTART.md for detailed setup
-./setup.sh
+# See the README for detailed setup
+cp .env.example .env
+docker compose up -d
+cd extension && npm install && npm run build
 ```
 
 ## Development Guidelines
@@ -304,7 +307,7 @@ Update docs for:
 - Open an issue for questions
 - Check existing issues/discussions
 - Review [ARCHITECTURE.md](ARCHITECTURE.md)
-- Check [DEPLOYMENT.md](DEPLOYMENT.md)
+- Check the deployment instructions in [README.md](README.md)
 
 ## Release Process
 
