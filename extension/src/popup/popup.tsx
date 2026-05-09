@@ -22,6 +22,13 @@ import {
 
 type Tab = 'banlist' | 'import' | 'export' | 'settings';
 
+interface ConfirmRequest {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  resolve: (ok: boolean) => void;
+}
+
 const Icon = {
   Shield: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -128,6 +135,23 @@ const PopupApp: React.FC = () => {
     apiKey: '',
     defaultAuthor: '',
   });
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+
+  function askConfirm(
+    title: string,
+    message: string,
+    confirmLabel = 'Confirm'
+  ): Promise<boolean> {
+    return new Promise((resolve) => {
+      setConfirmRequest({ title, message, confirmLabel, resolve });
+    });
+  }
+
+  function settleConfirm(value: boolean) {
+    if (!confirmRequest) return;
+    confirmRequest.resolve(value);
+    setConfirmRequest(null);
+  }
 
   useEffect(() => {
     (async () => {
@@ -246,7 +270,11 @@ const PopupApp: React.FC = () => {
   }
 
   async function handleDeleteBan(faceitName: string) {
-    if (!window.confirm(`Remove ${faceitName} from banlist?`)) return;
+    const ok = await askConfirm(
+      `Unban ${faceitName}`,
+      'This player will no longer be highlighted on FACEIT pages.'
+    );
+    if (!ok) return;
 
     const apiKey = await getApiKey();
     if (!apiKey) {
@@ -797,6 +825,40 @@ const PopupApp: React.FC = () => {
           </section>
         )}
       </main>
+
+      {confirmRequest && (
+        <div className="modal-backdrop" onClick={() => settleConfirm(false)}>
+          <div
+            className="modal"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="modal-header">
+              <span className="modal-icon"><Icon.Shield /></span>
+              <span className="modal-title">{confirmRequest.title}</span>
+            </div>
+            <div className="modal-message">{confirmRequest.message}</div>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn btn-ghost btn-inline"
+                onClick={() => settleConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-inline"
+                onClick={() => settleConfirm(true)}
+                autoFocus
+              >
+                {confirmRequest.confirmLabel ?? 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
