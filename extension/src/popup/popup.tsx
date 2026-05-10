@@ -31,14 +31,9 @@ interface ConfirmRequest {
 
 const Icon = {
   Shield: () => (
-    // Filled shield matching the brand mark — orange body with a white
-    // V-shaped notch carved out of the top.
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5l-8-3Zm0 4 4.6 5.1L18 9.7l-6 8L6 11l1.4-1.4L12 14.3 7.4 9 12 6Z"
-      />
-    </svg>
+    // Use the brand PNG so the popup always shows the canonical logo,
+    // not an SVG approximation.
+    <img src="images/icon-128.png" alt="" width={20} height={20} />
   ),
   List: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
