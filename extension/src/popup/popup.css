@@ -118,8 +118,36 @@ body {
   color: var(--orange);
 }
 
-.sidebar-footer {
+.sidebar-links {
   margin-top: auto;
+  display: flex;
+  gap: 6px;
+  padding: 8px 4px 10px;
+}
+
+.sidebar-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  background: transparent;
+  transition: color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+
+.sidebar-link:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-link-star:hover {
+  color: #fbbf24;
+}
+
+.sidebar-footer {
   padding: 10px 6px 0;
   border-top: 1px solid var(--border);
   display: flex;
