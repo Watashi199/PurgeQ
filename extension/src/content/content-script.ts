@@ -299,23 +299,20 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function buildShieldIcon(): SVGElement {
+  // Filled shield matching the brand mark — orange body with a white
+  // V-shaped notch carved out of the top.
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '2');
-  svg.setAttribute('stroke-linecap', 'round');
-  svg.setAttribute('stroke-linejoin', 'round');
-  svg.setAttribute('width', '18');
-  svg.setAttribute('height', '18');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
 
-  const outline = document.createElementNS(SVG_NS, 'path');
-  outline.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');
-  svg.appendChild(outline);
-
-  const check = document.createElementNS(SVG_NS, 'path');
-  check.setAttribute('d', 'm9 12 2 2 4-4');
-  svg.appendChild(check);
+  const body = document.createElementNS(SVG_NS, 'path');
+  body.setAttribute('fill', 'currentColor');
+  body.setAttribute(
+    'd',
+    'M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5l-8-3Zm0 4 4.6 5.1L18 9.7l-6 8L6 11l1.4-1.4L12 14.3 7.4 9 12 6Z'
+  );
+  svg.appendChild(body);
 
   return svg;
 }

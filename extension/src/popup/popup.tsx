@@ -31,10 +31,13 @@ interface ConfirmRequest {
 
 const Icon = {
   Shield: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      <path d="m9 12 2 2 4-4" />
+    // Filled shield matching the brand mark — orange body with a white
+    // V-shaped notch carved out of the top.
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2 4 5v7c0 6 8 10 8 10s8-4 8-10V5l-8-3Zm0 4 4.6 5.1L18 9.7l-6 8L6 11l1.4-1.4L12 14.3 7.4 9 12 6Z"
+      />
     </svg>
   ),
   List: () => (
