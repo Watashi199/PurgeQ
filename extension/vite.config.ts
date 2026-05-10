@@ -41,8 +41,10 @@ function copyStaticAssets() {
         if (!fs.existsSync(imagesDest)) {
           fs.mkdirSync(imagesDest, { recursive: true });
         }
+        // Ship only the rendered PNG icons; skip the SVG source and any
+        // master files used only as resize sources.
         const files = fs.readdirSync(imagesSrc).filter(
-          (f) => !/master/i.test(f)
+          (f) => f.toLowerCase().endsWith('.png') && !/master/i.test(f)
         );
         files.forEach((file) => {
           fs.copyFileSync(
