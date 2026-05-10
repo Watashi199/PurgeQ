@@ -36,12 +36,14 @@ function copyStaticAssets() {
         console.log('✓ Copied popup.css');
       }
 
-      // Copy images if they exist
+      // Copy images if they exist (skip master files used only as resize sources).
       if (fs.existsSync(imagesSrc)) {
         if (!fs.existsSync(imagesDest)) {
           fs.mkdirSync(imagesDest, { recursive: true });
         }
-        const files = fs.readdirSync(imagesSrc);
+        const files = fs.readdirSync(imagesSrc).filter(
+          (f) => !/master/i.test(f)
+        );
         files.forEach((file) => {
           fs.copyFileSync(
             path.join(imagesSrc, file),
