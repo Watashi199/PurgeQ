@@ -296,28 +296,15 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
   reason.focus();
 }
 
-const SVG_NS = 'http://www.w3.org/2000/svg';
-
-function buildShieldIcon(): SVGElement {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 24 24');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('stroke', 'currentColor');
-  svg.setAttribute('stroke-width', '2');
-  svg.setAttribute('stroke-linecap', 'round');
-  svg.setAttribute('stroke-linejoin', 'round');
-  svg.setAttribute('width', '18');
-  svg.setAttribute('height', '18');
-
-  const outline = document.createElementNS(SVG_NS, 'path');
-  outline.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');
-  svg.appendChild(outline);
-
-  const check = document.createElementNS(SVG_NS, 'path');
-  check.setAttribute('d', 'm9 12 2 2 4-4');
-  svg.appendChild(check);
-
-  return svg;
+function buildShieldIcon(): HTMLImageElement {
+  // chrome.runtime.getURL resolves to chrome-extension://<id>/images/... so
+  // it works from a content script injected into a third-party page.
+  const img = document.createElement('img');
+  img.src = chrome.runtime.getURL('images/icon-128.png');
+  img.width = 20;
+  img.height = 20;
+  img.alt = '';
+  return img;
 }
 
 interface DialogOptions {
