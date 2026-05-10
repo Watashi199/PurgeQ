@@ -296,15 +296,30 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
   reason.focus();
 }
 
-function buildShieldIcon(): HTMLImageElement {
-  // chrome.runtime.getURL resolves to chrome-extension://<id>/images/... so
-  // it works from a content script injected into a third-party page.
-  const img = document.createElement('img');
-  img.src = chrome.runtime.getURL('images/icon-128.png');
-  img.width = 20;
-  img.height = 20;
-  img.alt = '';
-  return img;
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
+function buildShieldIcon(): SVGElement {
+  // Orange filled shield with a white checkmark inside.
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '20');
+  svg.setAttribute('height', '20');
+
+  const body = document.createElementNS(SVG_NS, 'path');
+  body.setAttribute('fill', '#ff5500');
+  body.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');
+  svg.appendChild(body);
+
+  const check = document.createElementNS(SVG_NS, 'path');
+  check.setAttribute('fill', 'none');
+  check.setAttribute('stroke', '#ffffff');
+  check.setAttribute('stroke-width', '2.5');
+  check.setAttribute('stroke-linecap', 'round');
+  check.setAttribute('stroke-linejoin', 'round');
+  check.setAttribute('d', 'm8 12 3 3 5-5');
+  svg.appendChild(check);
+
+  return svg;
 }
 
 interface DialogOptions {
