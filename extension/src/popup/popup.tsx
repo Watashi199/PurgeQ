@@ -31,14 +31,16 @@ interface ConfirmRequest {
 
 const Icon = {
   Shield: () => (
-    <svg viewBox="0 0 24 24" width={20} height={20} aria-hidden="true">
-      <path fill="#ff5500" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    <svg viewBox="0 0 24 24" width={20} height={20} fill="none"
+      strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path
-        fill="none"
+        stroke="#ff5500"
+        strokeWidth="2"
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
+      />
+      <path
         stroke="#ffffff"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
+        strokeWidth="2"
         d="m8 12 3 3 5-5"
       />
     </svg>

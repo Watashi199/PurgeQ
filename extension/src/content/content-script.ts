@@ -299,21 +299,24 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 function buildShieldIcon(): SVGElement {
-  // Orange filled shield with a white checkmark inside.
+  // Orange shield outline with a white checkmark inside (no fill).
   const svg = document.createElementNS(SVG_NS, 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('width', '20');
   svg.setAttribute('height', '20');
+  svg.setAttribute('fill', 'none');
 
-  const body = document.createElementNS(SVG_NS, 'path');
-  body.setAttribute('fill', '#ff5500');
-  body.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');
-  svg.appendChild(body);
+  const outline = document.createElementNS(SVG_NS, 'path');
+  outline.setAttribute('stroke', '#ff5500');
+  outline.setAttribute('stroke-width', '2');
+  outline.setAttribute('stroke-linecap', 'round');
+  outline.setAttribute('stroke-linejoin', 'round');
+  outline.setAttribute('d', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z');
+  svg.appendChild(outline);
 
   const check = document.createElementNS(SVG_NS, 'path');
-  check.setAttribute('fill', 'none');
   check.setAttribute('stroke', '#ffffff');
-  check.setAttribute('stroke-width', '2.5');
+  check.setAttribute('stroke-width', '2');
   check.setAttribute('stroke-linecap', 'round');
   check.setAttribute('stroke-linejoin', 'round');
   check.setAttribute('d', 'm8 12 3 3 5-5');
