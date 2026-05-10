@@ -9,6 +9,7 @@
     "package": "npm run build && node scripts/zip-dist.js",
     "package:firefox": "npm run build && node scripts/zip-dist.js --firefox",
     "package:source": "node scripts/zip-source.js",
+    "icons": "node scripts/svg-to-icons.js",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write src/",
@@ -29,6 +30,7 @@
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^3.1.0",
+    "sharp": "^0.34.5",
     "typescript": "^5.2.2",
     "vite": "^5.0.2"
   }
