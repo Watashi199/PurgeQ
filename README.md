@@ -3,25 +3,25 @@
 ## Never queue with that guy. Again.
 
 PurgeQ lets you flag players you never want to queue with again.  
-Banned players are highlighted directly on FACEIT profiles, lobbies, party and match rooms — so you can avoid known trolls before the game starts.
+Banned players are highlighted directly on FACEIT profiles, lobbies, party and match rooms, so you can avoid known trolls before the game starts.
 
 ---
 
 ## ⚡ What it does
 
-- 🔴 **Live highlight** — flagged players are visually marked on FACEIT cards  
-- ⚡ **One-click ban** — add a player instantly with a reason  
-- 🔄 **Real-time sync** — updates appear across all users instantly  
-- 📥 **Import / Export** — JSON or CSV support  
-- 🛜 **Offline cache** — still works without server connection  
-- 🤝 **Team sync** — shared banlist across friends or teammates  
+- 🔴 **Live highlight** - flagged players are visually marked on FACEIT cards  
+- ⚡ **One-click ban** - add a player instantly with a reason  
+- 🔄 **Real-time sync** - updates appear across all users instantly  
+- 📥 **Import / Export** - JSON or CSV support  
+- 🛜 **Offline cache** - still works without server connection  
+- 🤝 **Team sync** - shared banlist across friends or teammates  
 
 ---
 
 ## 🧠 How it works
 
-- **API** — FastAPI backend (PostgreSQL + Redis)  
-- **Extension** — Chrome / Firefox extension overlaying FACEIT UI  
+- **API** - FastAPI backend (PostgreSQL + Redis)  
+- **Extension** - Chrome / Firefox extension overlaying FACEIT UI  
 
 ---
 
