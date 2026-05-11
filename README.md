@@ -1,6 +1,6 @@
 # PurgeQ
 
-**Your personal cheater/toxic-player blacklist for FACEIT.**
+**Never queue with that guy. Again.**
 
 PurgeQ lets you flag players you never want to queue with again. The names are highlighted directly on FACEIT player cards, in any lobby, match room, party, or profile page — so you spot a known troll before the match even starts. Build your list solo, or share it with your team and edit it together.
 
