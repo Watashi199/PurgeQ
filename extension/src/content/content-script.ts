@@ -752,6 +752,18 @@ function injectStyles() {
   style.textContent = `
     [data-purgeq-banned="true"] {
       border-radius: 8px;
+      /* Thin red liseré inside the card border + faint outer glow.
+         box-shadow doesn't push the layout the way `border` would. */
+      box-shadow:
+        inset 0 0 0 1px rgba(220, 50, 50, 0.55),
+        0 0 10px rgba(220, 50, 50, 0.12) !important;
+      transition: box-shadow 0.2s ease-out;
+    }
+
+    [data-purgeq-banned="true"]:hover {
+      box-shadow:
+        inset 0 0 0 1px rgba(240, 70, 70, 0.85),
+        0 0 14px rgba(240, 70, 70, 0.2) !important;
     }
 
     [data-purgeq-banned="true"] [class*="Nickname"] {
