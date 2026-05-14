@@ -405,8 +405,11 @@ function createBanButton(nickname: string): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'purgeq-card-action purgeq-card-action-ban';
-  btn.textContent = `🚫 ${tr('banButton')}`;
   btn.title = tr('banFormTitle', { name: nickname });
+  btn.appendChild(buildProhibitionIcon());
+  const label = document.createElement('span');
+  label.textContent = tr('banButton');
+  btn.appendChild(label);
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -774,14 +777,10 @@ function injectStyles() {
       transition: background 0.2s ease-out;
     }
     [data-purgeq-banned="true"]:hover .purgeq-bg-overlay {
-      /* FACEIT lays a white veil on the card at hover; multiply blends our
-         red on top so white * red = red (the veil disappears under our tint)
-         while keeping the same gradient shape. */
-      mix-blend-mode: multiply;
       background: linear-gradient(180deg,
-        rgba(230, 60, 60, 0.95) 0%,
-        rgba(230, 60, 60, 0.45) 35%,
-        rgba(230, 60, 60, 0) 70%);
+        rgba(210, 40, 40, 0.55) 0%,
+        rgba(210, 40, 40, 0.18) 35%,
+        rgba(210, 40, 40, 0) 70%);
     }
 
     [data-testid="playerCard"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action),
@@ -790,33 +789,36 @@ function injectStyles() {
       z-index: 2;
     }
 
-    /* ───── Ban button (shown on hover for clean players) ───── */
+    /* ───── Ban button (shown on hover for clean players) ─────
+       Same visual language as the banned-row pill: red gradient, 26px tall,
+       prohibition icon + label. */
     .purgeq-card-action-ban {
       all: unset;
       box-sizing: border-box;
       position: absolute;
-      left: 10px;
-      right: 10px;
+      left: 8px;
+      right: 8px;
       bottom: 6px;
-      height: 22px;
+      height: 26px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      border-radius: 5px;
+      gap: 6px;
+      padding: 0 8px;
+      border-radius: 6px;
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 0.2px;
       color: white;
       cursor: pointer;
       font-family: system-ui, sans-serif;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
-      transition: transform 0.15s, filter 0.15s, opacity 0.15s;
-      z-index: 3;
-      background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+      background: linear-gradient(135deg, #c83232 0%, #8a1818 100%);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45),
+                  inset 0 -1px 0 rgba(0, 0, 0, 0.3);
       opacity: 0;
       transform: translateY(4px);
+      transition: transform 0.15s, filter 0.15s, opacity 0.15s;
+      z-index: 3;
     }
 
     [data-testid="playerCard"]:hover .purgeq-card-action-ban,
@@ -825,7 +827,7 @@ function injectStyles() {
       transform: translateY(0);
     }
 
-    .purgeq-card-action-ban:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .purgeq-card-action-ban:hover { filter: brightness(1.1); transform: translateY(-1px); }
     .purgeq-card-action-ban:active { transform: translateY(0); filter: brightness(0.95); }
     .purgeq-card-action-ban[disabled] { opacity: 0.6; cursor: wait; transform: none; }
 
