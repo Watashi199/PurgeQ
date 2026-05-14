@@ -12,7 +12,7 @@ type CsKey =
   | 'reasonPlaceholder' | 'cancel' | 'confirm' | 'ok'
   | 'unbanConfirmTitle' | 'unbanConfirmMessage'
   | 'failedToUnban' | 'unknownError' | 'setDefaultAuthor'
-  | 'reasonLabel' | 'byLabel';
+  | 'reasonLabel' | 'byLabel' | 'bannedByPurgeq';
 
 const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
   en: {
@@ -25,6 +25,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Failed to unban', unknownError: 'Unknown error',
     setDefaultAuthor: 'Set a default author in the extension popup → Settings.',
     reasonLabel: 'Reason', byLabel: 'By',
+    bannedByPurgeq: 'Banned by PurgeQ',
   },
   fr: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -36,6 +37,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Échec du débannissement', unknownError: 'Erreur inconnue',
     setDefaultAuthor: 'Définis un auteur par défaut dans le popup → Paramètres.',
     reasonLabel: 'Raison', byLabel: 'Par',
+    bannedByPurgeq: 'Banni par PurgeQ',
   },
   'pt-BR': {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -47,6 +49,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Falha ao desbanir', unknownError: 'Erro desconhecido',
     setDefaultAuthor: 'Defina um autor padrão no popup → Configurações.',
     reasonLabel: 'Motivo', byLabel: 'Por',
+    bannedByPurgeq: 'Banido pelo PurgeQ',
   },
   ru: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -58,6 +61,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Не удалось разбанить', unknownError: 'Неизвестная ошибка',
     setDefaultAuthor: 'Задайте автора по умолчанию в попапе → Настройки.',
     reasonLabel: 'Причина', byLabel: 'От',
+    bannedByPurgeq: 'Забанен через PurgeQ',
   },
   tr: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -69,6 +73,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Yasak kaldırılamadı', unknownError: 'Bilinmeyen hata',
     setDefaultAuthor: 'Eklenti popup → Ayarlar bölümünden varsayılan bir yazar belirleyin.',
     reasonLabel: 'Neden', byLabel: 'Ekleyen',
+    bannedByPurgeq: 'PurgeQ tarafından yasaklandı',
   },
   es: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -80,6 +85,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'No se ha podido desbanear', unknownError: 'Error desconocido',
     setDefaultAuthor: 'Define un autor por defecto en el popup → Ajustes.',
     reasonLabel: 'Motivo', byLabel: 'Por',
+    bannedByPurgeq: 'Baneado por PurgeQ',
   },
   de: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -91,6 +97,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Entbannen fehlgeschlagen', unknownError: 'Unbekannter Fehler',
     setDefaultAuthor: 'Setze einen Standard-Autor im Popup → Einstellungen.',
     reasonLabel: 'Grund', byLabel: 'Von',
+    bannedByPurgeq: 'Von PurgeQ gebannt',
   },
 };
 
@@ -226,7 +233,9 @@ async function loadBanlist(refreshDom = true) {
       el.removeAttribute(PROCESSED_ATTR);
     });
     document
-      .querySelectorAll('.purgeq-card-action, .purgeq-bg-overlay')
+      .querySelectorAll(
+        '.purgeq-card-action, .purgeq-banned-row, .purgeq-bg-overlay'
+      )
       .forEach((el) => el.remove());
     document.querySelectorAll(`[${BANNED_ATTR}]`).forEach((el) => {
       el.removeAttribute(BANNED_ATTR);
@@ -295,34 +304,101 @@ function ensureBgOverlay(card: HTMLElement) {
   card.insertBefore(bg, card.firstChild);
 }
 
-function createUnbanButton(nickname: string, ban: BanlistItem): HTMLButtonElement {
-  const btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'purgeq-card-action purgeq-card-action-unban';
-  btn.textContent = `♻ ${tr('unbanButton')}`;
-  btn.title = `${tr('reasonLabel')}: ${ban.reason}\n${tr('byLabel')}: ${ban.author}\n${new Date(
+function createUnbanButton(nickname: string, ban: BanlistItem): HTMLDivElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'purgeq-card-action purgeq-banned-row';
+  const tooltip = `${tr('reasonLabel')}: ${ban.reason}\n${tr('byLabel')}: ${ban.author}\n${new Date(
     ban.created_at
   ).toLocaleDateString(currentLanguage)}`;
-  btn.addEventListener('click', async (e) => {
+  wrap.title = tooltip;
+
+  // Left pill: prohibition icon + "Banned by PurgeQ" — purely informational.
+  const pill = document.createElement('div');
+  pill.className = 'purgeq-banned-pill';
+  pill.appendChild(buildProhibitionIcon());
+  const label = document.createElement('span');
+  label.className = 'purgeq-banned-label';
+  label.textContent = tr('bannedByPurgeq');
+  pill.appendChild(label);
+  wrap.appendChild(pill);
+
+  // Right control: the actual unban (trash icon).
+  const trash = document.createElement('button');
+  trash.type = 'button';
+  trash.className = 'purgeq-unban-icon';
+  trash.title = tr('unbanConfirmTitle', { name: nickname });
+  trash.appendChild(buildTrashIcon());
+  trash.addEventListener('click', async (e) => {
     e.stopPropagation();
     e.preventDefault();
-    const ok = await openConfirmDialog(btn, {
+    const ok = await openConfirmDialog(trash, {
       title: tr('unbanConfirmTitle', { name: nickname }),
       message: tr('unbanConfirmMessage'),
       confirmLabel: tr('confirm'),
     });
     if (!ok) return;
-    btn.disabled = true;
+    trash.disabled = true;
     const result = await sendAction('REMOVE_BAN', { faceit_name: nickname });
     if (!result.success) {
-      btn.disabled = false;
-      await openAlertDialog(btn, {
+      trash.disabled = false;
+      await openAlertDialog(trash, {
         title: tr('failedToUnban'),
         message: result.error || tr('unknownError'),
       });
     }
   });
-  return btn;
+  wrap.appendChild(trash);
+
+  return wrap;
+}
+
+function buildProhibitionIcon(): SVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  const circle = document.createElementNS(ns, 'circle');
+  circle.setAttribute('cx', '12');
+  circle.setAttribute('cy', '12');
+  circle.setAttribute('r', '9');
+  svg.appendChild(circle);
+  const slash = document.createElementNS(ns, 'line');
+  slash.setAttribute('x1', '5.6');
+  slash.setAttribute('y1', '5.6');
+  slash.setAttribute('x2', '18.4');
+  slash.setAttribute('y2', '18.4');
+  svg.appendChild(slash);
+  return svg;
+}
+
+function buildTrashIcon(): SVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('fill', 'none');
+  svg.setAttribute('stroke', 'currentColor');
+  svg.setAttribute('stroke-width', '2');
+  svg.setAttribute('stroke-linecap', 'round');
+  svg.setAttribute('stroke-linejoin', 'round');
+  const paths = [
+    'M3 6h18',
+    'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6',
+    'M10 11v6M14 11v6',
+    'M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2',
+  ];
+  for (const d of paths) {
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', d);
+    svg.appendChild(p);
+  }
+  return svg;
 }
 
 function createBanButton(nickname: string): HTMLButtonElement {
@@ -672,31 +748,33 @@ function injectStyles() {
   style.id = 'purgeq-styles';
   style.textContent = `
     [data-purgeq-banned="true"] {
-      outline: 2px solid #ef4444 !important;
-      outline-offset: 2px;
       border-radius: 8px;
-      box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25), 0 0 24px rgba(239, 68, 68, 0.45) !important;
-      animation: purgeq-pulse 2.4s ease-in-out infinite;
-    }
-
-    @keyframes purgeq-pulse {
-      0%, 100% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25), 0 0 20px rgba(239, 68, 68, 0.4); }
-      50% { box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.5), 0 0 32px rgba(239, 68, 68, 0.7); }
     }
 
     [data-purgeq-banned="true"] [class*="Nickname"] {
       color: #ef4444 !important;
     }
 
-    .purgeq-bg-overlay {
+    /* Soft dark-red tint over the whole card. Replaces the old red glow/pulse. */
+    [data-purgeq-banned="true"] .purgeq-bg-overlay {
       position: absolute;
       inset: 0;
       pointer-events: none;
       border-radius: inherit;
-      background:
-        linear-gradient(160deg, rgba(239, 68, 68, 0.45) 0%, rgba(127, 29, 29, 0.25) 50%, rgba(239, 68, 68, 0.5) 100%);
+      background: linear-gradient(180deg,
+        rgba(80, 12, 12, 0.45) 0%,
+        rgba(50, 8, 8, 0.65) 100%);
       mix-blend-mode: multiply;
       z-index: 1;
+    }
+
+    /* Non-banned cards never need an overlay even if the element lingers
+       from a previous state. */
+    .purgeq-bg-overlay {
+      display: none;
+    }
+    [data-purgeq-banned="true"] .purgeq-bg-overlay {
+      display: block;
     }
 
     [data-testid="playerCard"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action),
@@ -705,7 +783,8 @@ function injectStyles() {
       z-index: 2;
     }
 
-    .purgeq-card-action {
+    /* ───── Ban button (shown on hover for clean players) ───── */
+    .purgeq-card-action-ban {
       all: unset;
       box-sizing: border-box;
       position: absolute;
@@ -728,9 +807,6 @@ function injectStyles() {
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
       transition: transform 0.15s, filter 0.15s, opacity 0.15s;
       z-index: 3;
-    }
-
-    .purgeq-card-action-ban {
       background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
       opacity: 0;
       transform: translateY(4px);
@@ -742,13 +818,69 @@ function injectStyles() {
       transform: translateY(0);
     }
 
-    .purgeq-card-action-unban {
-      background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
+    .purgeq-card-action-ban:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .purgeq-card-action-ban:active { transform: translateY(0); filter: brightness(0.95); }
+    .purgeq-card-action-ban[disabled] { opacity: 0.6; cursor: wait; transform: none; }
+
+    /* ───── Banned row (info pill + trash icon) ───── */
+    .purgeq-banned-row {
+      position: absolute;
+      left: 8px;
+      right: 8px;
+      bottom: 6px;
+      display: flex;
+      gap: 6px;
+      align-items: stretch;
+      z-index: 3;
+      font-family: system-ui, sans-serif;
     }
 
-    .purgeq-card-action:hover { filter: brightness(1.12); transform: translateY(-1px); }
-    .purgeq-card-action:active { transform: translateY(0); filter: brightness(0.95); }
-    .purgeq-card-action[disabled] { opacity: 0.6; cursor: wait; transform: none; }
+    .purgeq-banned-pill {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 8px;
+      height: 26px;
+      border-radius: 6px;
+      background: linear-gradient(135deg, #c83232 0%, #8a1818 100%);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45),
+                  inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+      user-select: none;
+    }
+
+    .purgeq-banned-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .purgeq-unban-icon {
+      all: unset;
+      box-sizing: border-box;
+      width: 26px;
+      height: 26px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: rgba(20, 20, 24, 0.85);
+      color: #d4d4d8;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, filter 0.15s;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+    .purgeq-unban-icon:hover {
+      background: #ef4444;
+      color: #fff;
+    }
+    .purgeq-unban-icon:active { filter: brightness(0.9); }
+    .purgeq-unban-icon[disabled] { opacity: 0.55; cursor: wait; }
 
     .purgeq-floating {
       position: fixed;
