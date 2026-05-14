@@ -755,26 +755,27 @@ function injectStyles() {
       color: #ef4444 !important;
     }
 
-    /* Soft dark-red tint over the whole card. Replaces the old red glow/pulse. */
-    [data-purgeq-banned="true"] .purgeq-bg-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border-radius: inherit;
-      background: linear-gradient(180deg,
-        rgba(80, 12, 12, 0.45) 0%,
-        rgba(50, 8, 8, 0.65) 100%);
-      mix-blend-mode: multiply;
-      z-index: 1;
-    }
-
-    /* Non-banned cards never need an overlay even if the element lingers
-       from a previous state. */
+    /* Dark-red tint always visible on banned cards.
+       Hover bumps saturation a notch. */
     .purgeq-bg-overlay {
       display: none;
     }
     [data-purgeq-banned="true"] .purgeq-bg-overlay {
       display: block;
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(180deg,
+        rgba(140, 22, 22, 0.55) 0%,
+        rgba(70, 10, 10, 0.78) 100%);
+      z-index: 1;
+      transition: background 0.18s ease-out;
+    }
+    [data-purgeq-banned="true"]:hover .purgeq-bg-overlay {
+      background: linear-gradient(180deg,
+        rgba(190, 35, 35, 0.68) 0%,
+        rgba(100, 15, 15, 0.88) 100%);
     }
 
     [data-testid="playerCard"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action),
