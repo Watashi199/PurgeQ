@@ -25,7 +25,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Failed to unban', unknownError: 'Unknown error',
     setDefaultAuthor: 'Set a default author in the extension popup → Settings.',
     reasonLabel: 'Reason', byLabel: 'By',
-    bannedByPurgeq: 'Banned by PurgeQ',
+    bannedByPurgeq: 'Banned',
   },
   fr: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -37,7 +37,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Échec du débannissement', unknownError: 'Erreur inconnue',
     setDefaultAuthor: 'Définis un auteur par défaut dans le popup → Paramètres.',
     reasonLabel: 'Raison', byLabel: 'Par',
-    bannedByPurgeq: 'Banni par PurgeQ',
+    bannedByPurgeq: 'Banni',
   },
   'pt-BR': {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -49,7 +49,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Falha ao desbanir', unknownError: 'Erro desconhecido',
     setDefaultAuthor: 'Defina um autor padrão no popup → Configurações.',
     reasonLabel: 'Motivo', byLabel: 'Por',
-    bannedByPurgeq: 'Banido pelo PurgeQ',
+    bannedByPurgeq: 'Banido',
   },
   ru: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -61,7 +61,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Не удалось разбанить', unknownError: 'Неизвестная ошибка',
     setDefaultAuthor: 'Задайте автора по умолчанию в попапе → Настройки.',
     reasonLabel: 'Причина', byLabel: 'От',
-    bannedByPurgeq: 'Забанен через PurgeQ',
+    bannedByPurgeq: 'Забанен',
   },
   tr: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -73,7 +73,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Yasak kaldırılamadı', unknownError: 'Bilinmeyen hata',
     setDefaultAuthor: 'Eklenti popup → Ayarlar bölümünden varsayılan bir yazar belirleyin.',
     reasonLabel: 'Neden', byLabel: 'Ekleyen',
-    bannedByPurgeq: 'PurgeQ tarafından yasaklandı',
+    bannedByPurgeq: 'Yasaklı',
   },
   es: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -85,7 +85,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'No se ha podido desbanear', unknownError: 'Error desconocido',
     setDefaultAuthor: 'Define un autor por defecto en el popup → Ajustes.',
     reasonLabel: 'Motivo', byLabel: 'Por',
-    bannedByPurgeq: 'Baneado por PurgeQ',
+    bannedByPurgeq: 'Baneado',
   },
   de: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -97,7 +97,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     failedToUnban: 'Entbannen fehlgeschlagen', unknownError: 'Unbekannter Fehler',
     setDefaultAuthor: 'Setze einen Standard-Autor im Popup → Einstellungen.',
     reasonLabel: 'Grund', byLabel: 'Von',
-    bannedByPurgeq: 'Von PurgeQ gebannt',
+    bannedByPurgeq: 'Gebannt',
   },
 };
 
