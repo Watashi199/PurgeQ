@@ -170,6 +170,29 @@ const PopupApp: React.FC = () => {
 
   const tr = (key: StringKey, vars?: Record<string, string | number>) =>
     t(key, settings.language, vars);
+
+  /**
+   * Broadcast a BANLIST_UPDATED notice to every open tab so that content
+   * scripts on FACEIT pages re-scan and drop / add the red glow without
+   * waiting for the next 60 s alarm.
+   *
+   * Mutations from the popup go directly to the API (not through the
+   * service worker), so we have to do the fan-out ourselves.
+   */
+  function notifyTabsBanlistChanged() {
+    try {
+      chrome.tabs.query({}, (tabs) => {
+        for (const tab of tabs) {
+          if (tab.id == null) continue;
+          chrome.tabs.sendMessage(tab.id, { type: 'BANLIST_UPDATED' }, () => {
+            void chrome.runtime.lastError;
+          });
+        }
+      });
+    } catch {
+      // Extension reloaded mid-session — ignore.
+    }
+  }
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
 
   function askConfirm(
@@ -302,6 +325,7 @@ const PopupApp: React.FC = () => {
       setNewBan({ faceit_name: '', reason: '' });
       await clearBanlistCache();
       await loadBanlist();
+      notifyTabsBanlistChanged();
     } catch (err) {
       setError(`${err}`);
     } finally {
@@ -339,6 +363,7 @@ const PopupApp: React.FC = () => {
       setSuccess(tr('notif.removed', { name: faceitName }));
       await clearBanlistCache();
       await loadBanlist();
+      notifyTabsBanlistChanged();
     } catch (err) {
       setError(`${err}`);
     }
@@ -349,6 +374,7 @@ const PopupApp: React.FC = () => {
       setLoading(true);
       await clearBanlistCache();
       await loadBanlist();
+      notifyTabsBanlistChanged();
       setSuccess(tr('notif.refreshed'));
     } catch (err) {
       setError(`${err}`);
@@ -432,6 +458,7 @@ const PopupApp: React.FC = () => {
       }
       await clearBanlistCache();
       await loadBanlist();
+      notifyTabsBanlistChanged();
       setTab('banlist');
     } catch (err) {
       setError(`Import failed: ${err}`);
