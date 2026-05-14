@@ -19,6 +19,13 @@ import {
   requestApiHostPermission,
   saveSettings,
 } from '../shared/settings';
+import {
+  DEFAULT_LANGUAGE,
+  LANGUAGES,
+  Language,
+  StringKey,
+  t,
+} from '../shared/i18n';
 
 type Tab = 'banlist' | 'import' | 'export' | 'settings';
 
@@ -128,9 +135,9 @@ function avatarColor(name: string): string {
   return `hsl(${hue}, 65%, 50%)`;
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, lang: Language): string {
   try {
-    return new Date(iso).toLocaleDateString('fr-FR', {
+    return new Date(iso).toLocaleDateString(lang, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
@@ -145,25 +152,30 @@ const PopupApp: React.FC = () => {
   const [banlist, setBanlist] = useState<BanlistItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [newBan, setNewBan] = useState({ faceit_name: '', reason: '', author: '' });
+  const [newBan, setNewBan] = useState({ faceit_name: '', reason: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [settings, setSettings] = useState<Settings>({
     apiUrl: DEFAULT_API_URL,
     apiKey: '',
     defaultAuthor: '',
+    language: DEFAULT_LANGUAGE,
   });
   const [draftSettings, setDraftSettings] = useState<Settings>({
     apiUrl: DEFAULT_API_URL,
     apiKey: '',
     defaultAuthor: '',
+    language: DEFAULT_LANGUAGE,
   });
+
+  const tr = (key: StringKey, vars?: Record<string, string | number>) =>
+    t(key, settings.language, vars);
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
 
   function askConfirm(
     title: string,
     message: string,
-    confirmLabel = 'Confirm'
+    confirmLabel?: string
   ): Promise<boolean> {
     return new Promise((resolve) => {
       setConfirmRequest({ title, message, confirmLabel, resolve });
@@ -236,32 +248,37 @@ const PopupApp: React.FC = () => {
     try {
       const granted = await requestApiHostPermission(url);
       if (!granted) {
-        setError('Permission denied for this URL.');
+        setError(tr('err.permDenied'));
         return;
       }
       const response = await fetch(`${url}/`);
       if (response.ok) {
         const data = await response.json().catch(() => null);
         const version = data?.version ? ` (v${data.version})` : '';
-        setSuccess(`Connected to ${url}${version}`);
+        setSuccess(`${tr('notif.connected', { url })}${version}`);
       } else {
-        setError(`Server returned HTTP ${response.status} from ${url}`);
+        setError(`HTTP ${response.status} — ${url}`);
       }
     } catch (err) {
-      setError(`Could not reach ${url}: ${err}`);
+      setError(`${tr('err.unreachable', { url })} ${err}`);
     }
   }
 
   async function handleAddBan(e: React.FormEvent) {
     e.preventDefault();
-    if (!newBan.faceit_name || !newBan.reason || !newBan.author) {
-      setError('All fields are required');
+    const author = settings.defaultAuthor.trim();
+    if (!newBan.faceit_name || !newBan.reason) {
+      setError(tr('err.allRequired'));
+      return;
+    }
+    if (!author) {
+      setError(tr('err.noAuthor'));
       return;
     }
 
     const apiKey = await getApiKey();
     if (!apiKey) {
-      setError('API key is not set. Open Settings to configure it.');
+      setError(tr('err.noApiKey'));
       return;
     }
 
@@ -274,19 +291,19 @@ const PopupApp: React.FC = () => {
           'Content-Type': 'application/json',
           'X-API-Key': apiKey,
         },
-        body: JSON.stringify(newBan),
+        body: JSON.stringify({ ...newBan, author }),
       });
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      setSuccess('Player added to banlist');
-      setNewBan({ faceit_name: '', reason: '', author: '' });
+      setSuccess(tr('notif.added'));
+      setNewBan({ faceit_name: '', reason: '' });
       await clearBanlistCache();
       await loadBanlist();
     } catch (err) {
-      setError(`Failed to add ban: ${err}`);
+      setError(`${err}`);
     } finally {
       setLoading(false);
     }
@@ -294,14 +311,14 @@ const PopupApp: React.FC = () => {
 
   async function handleDeleteBan(faceitName: string) {
     const ok = await askConfirm(
-      `Unban ${faceitName}`,
-      'This player will no longer be highlighted on FACEIT pages.'
+      tr('modal.unbanTitle', { name: faceitName }),
+      tr('modal.unbanMessage')
     );
     if (!ok) return;
 
     const apiKey = await getApiKey();
     if (!apiKey) {
-      setError('API key is not set. Open Settings to configure it.');
+      setError(tr('err.noApiKey'));
       return;
     }
 
@@ -319,11 +336,11 @@ const PopupApp: React.FC = () => {
         throw new Error(`HTTP ${response.status}`);
       }
 
-      setSuccess(`${faceitName} removed from banlist`);
+      setSuccess(tr('notif.removed', { name: faceitName }));
       await clearBanlistCache();
       await loadBanlist();
     } catch (err) {
-      setError(`Failed to delete ban: ${err}`);
+      setError(`${err}`);
     }
   }
 
@@ -332,9 +349,9 @@ const PopupApp: React.FC = () => {
       setLoading(true);
       await clearBanlistCache();
       await loadBanlist();
-      setSuccess('Banlist refreshed');
+      setSuccess(tr('notif.refreshed'));
     } catch (err) {
-      setError(`Failed to refresh: ${err}`);
+      setError(`${err}`);
     } finally {
       setLoading(false);
     }
@@ -343,14 +360,14 @@ const PopupApp: React.FC = () => {
   async function handleImportFile(file: File) {
     const apiKey = await getApiKey();
     if (!apiKey) {
-      setError('API key is not set. Open Settings to configure it.');
+      setError(tr('err.noApiKey'));
       return;
     }
 
     const apiUrl = await getApiBaseUrl();
     const author = settings.defaultAuthor.trim();
     if (!author) {
-      setError('Set a Default author in Settings before importing.');
+      setError(tr('err.noAuthor'));
       return;
     }
 
@@ -428,9 +445,7 @@ const PopupApp: React.FC = () => {
     try {
       const granted = await requestApiHostPermission(draftSettings.apiUrl);
       if (!granted) {
-        setError(
-          'Host permission denied. The extension needs access to the API URL to fetch data.'
-        );
+        setError(tr('err.permDenied'));
         return;
       }
       await saveSettings(draftSettings);
@@ -439,20 +454,25 @@ const PopupApp: React.FC = () => {
       setDraftSettings(refreshed);
       await clearBanlistCache();
       await loadBanlist();
-      setSuccess('Settings saved');
+      setSuccess(tr('notif.settingsSaved'));
       setTab('banlist');
     } catch (err) {
-      setError(`Failed to save settings: ${err}`);
+      setError(`${err}`);
     }
   }
 
   function handleResetSettings() {
-    setDraftSettings({ apiUrl: DEFAULT_API_URL, apiKey: '', defaultAuthor: '' });
+    setDraftSettings({
+      apiUrl: DEFAULT_API_URL,
+      apiKey: '',
+      defaultAuthor: '',
+      language: settings.language,
+    });
   }
 
   function handleExport(format: 'json' | 'csv') {
     if (banlist.length === 0) {
-      setError('Banlist is empty, nothing to export.');
+      setError(tr('err.emptyExport'));
       return;
     }
 
@@ -499,7 +519,9 @@ const PopupApp: React.FC = () => {
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setSuccess(`Exported ${banlist.length} entries as ${format.toUpperCase()}`);
+    setSuccess(
+      tr('notif.exported', { n: banlist.length, format: format.toUpperCase() })
+    );
   }
 
   function handleGetKey() {
@@ -525,19 +547,19 @@ const PopupApp: React.FC = () => {
             className={`nav-item ${tab === 'banlist' ? 'is-active' : ''}`}
             onClick={() => setTab('banlist')}
           >
-            <Icon.List /> <span>Banlist</span>
+            <Icon.List /> <span>{tr('nav.banlist')}</span>
           </button>
           <button
             className={`nav-item ${tab === 'import' ? 'is-active' : ''}`}
             onClick={() => setTab('import')}
           >
-            <Icon.Upload /> <span>Import</span>
+            <Icon.Upload /> <span>{tr('nav.import')}</span>
           </button>
           <button
             className={`nav-item ${tab === 'export' ? 'is-active' : ''}`}
             onClick={() => setTab('export')}
           >
-            <Icon.Download /> <span>Export</span>
+            <Icon.Download /> <span>{tr('nav.export')}</span>
           </button>
           <button
             className={`nav-item ${tab === 'settings' ? 'is-active' : ''}`}
@@ -546,7 +568,7 @@ const PopupApp: React.FC = () => {
               setTab('settings');
             }}
           >
-            <Icon.Settings /> <span>Settings</span>
+            <Icon.Settings /> <span>{tr('nav.settings')}</span>
           </button>
         </nav>
         <div className="sidebar-links">
@@ -580,9 +602,9 @@ const PopupApp: React.FC = () => {
         </div>
 
         <div className="sidebar-footer">
-          <div className="footer-label">Server</div>
+          <div className="footer-label">{tr('footer.server')}</div>
           <div className="footer-value" title={settings.apiUrl}>{settings.apiUrl}</div>
-          <div className="footer-value">Banned: {banlist.length}</div>
+          <div className="footer-value">{tr('footer.banned')}: {banlist.length}</div>
         </div>
       </aside>
 
@@ -592,7 +614,7 @@ const PopupApp: React.FC = () => {
 
         {tab === 'banlist' && (
           <section className="page">
-            <h2 className="page-title">Banlist</h2>
+            <h2 className="page-title">{tr('banlist.title')}</h2>
 
             <div className="toolbar">
               <div className="search-wrap">
@@ -600,7 +622,7 @@ const PopupApp: React.FC = () => {
                 <input
                   type="text"
                   className="search-input"
-                  placeholder="Search by name or reason..."
+                  placeholder={tr('banlist.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -608,7 +630,7 @@ const PopupApp: React.FC = () => {
               <button
                 type="button"
                 className="icon-btn"
-                title="Refresh"
+                title={tr('banlist.refreshTooltip')}
                 onClick={handleRefresh}
                 disabled={loading}
               >
@@ -617,7 +639,7 @@ const PopupApp: React.FC = () => {
               <button
                 type="button"
                 className="icon-btn"
-                title="Import a banlist"
+                title={tr('banlist.importShortcutTooltip')}
                 onClick={() => setTab('import')}
               >
                 <Icon.Upload />
@@ -626,10 +648,10 @@ const PopupApp: React.FC = () => {
 
             <div className="banlist">
               {loading ? (
-                <div className="empty">Loading...</div>
+                <div className="empty">{tr('banlist.loading')}</div>
               ) : filteredBanlist.length === 0 ? (
                 <div className="empty">
-                  {searchQuery ? 'No results found' : 'No banned players yet'}
+                  {searchQuery ? tr('banlist.noResults') : tr('banlist.empty')}
                 </div>
               ) : (
                 filteredBanlist.map((item) => (
@@ -643,16 +665,16 @@ const PopupApp: React.FC = () => {
                     <div className="ban-meta">
                       <div className="ban-name">{item.faceit_name}</div>
                       <div className="ban-line">
-                        <span className="muted">Reason:</span> {item.reason}
+                        <span className="muted">{tr('banlist.reasonLabel')}:</span> {item.reason}
                       </div>
                       <div className="ban-line muted">
-                        By: {item.author} · {formatDate(item.created_at)}
+                        {tr('banlist.byLabel')}: {item.author} · {formatDate(item.created_at, settings.language)}
                       </div>
                     </div>
                     <button
                       type="button"
                       className="delete-btn"
-                      title="Remove from banlist"
+                      title={tr('banlist.deleteTooltip')}
                       onClick={() => handleDeleteBan(item.faceit_name)}
                     >
                       <Icon.Trash />
@@ -663,12 +685,12 @@ const PopupApp: React.FC = () => {
             </div>
 
             <div className="add-ban">
-              <h3 className="section-title">Add to banlist</h3>
+              <h3 className="section-title">{tr('addBan.title')}</h3>
               <form onSubmit={handleAddBan} className="form">
                 <input
                   type="text"
                   className="input"
-                  placeholder="FACEIT username"
+                  placeholder={tr('addBan.faceitPlaceholder')}
                   value={newBan.faceit_name}
                   onChange={(e) =>
                     setNewBan({ ...newBan, faceit_name: e.target.value })
@@ -677,23 +699,16 @@ const PopupApp: React.FC = () => {
                 <input
                   type="text"
                   className="input"
-                  placeholder="Reason"
+                  placeholder={tr('addBan.reasonPlaceholder')}
                   value={newBan.reason}
                   onChange={(e) => setNewBan({ ...newBan, reason: e.target.value })}
-                />
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Your name"
-                  value={newBan.author}
-                  onChange={(e) => setNewBan({ ...newBan, author: e.target.value })}
                 />
                 <button
                   type="submit"
                   className="btn btn-primary"
                   disabled={loading}
                 >
-                  Add Ban
+                  {tr('addBan.submit')}
                 </button>
               </form>
             </div>
@@ -702,16 +717,13 @@ const PopupApp: React.FC = () => {
 
         {tab === 'import' && (
           <section className="page">
-            <h2 className="page-title">Import</h2>
-            <p className="page-hint">
-              Bulk-import a list of FACEIT names from a JSON or CSV file. Existing
-              entries are skipped automatically.
-            </p>
+            <h2 className="page-title">{tr('import.title')}</h2>
+            <p className="page-hint">{tr('import.hint')}</p>
 
             <label className="dropzone">
               <Icon.Upload />
-              <div className="dropzone-title">Choose a file</div>
-              <div className="dropzone-hint">.json or .csv (max 1000 names)</div>
+              <div className="dropzone-title">{tr('import.dropzoneTitle')}</div>
+              <div className="dropzone-hint">{tr('import.dropzoneHint')}</div>
               <input
                 type="file"
                 accept=".json,.csv,.txt"
@@ -724,29 +736,14 @@ const PopupApp: React.FC = () => {
               />
             </label>
 
-            <div className="hint-block">
-              <strong>JSON</strong> — an array of names <code>["Watashi-", "Foo"]</code>,
-              an array of objects <code>{'[{"faceit_name": "Watashi-", "reason": "..."}]'}</code>,
-              or <code>{'{"items": [...]}'}</code>.
-              <br />
-              <strong>CSV</strong> — first row must be a header containing
-              <code>faceit_name</code> (or <code>name</code>); optional
-              <code>reason</code> and <code>author</code> columns are picked up too.
-              <br />
-              <strong>Author</strong> defaults to the value set in Settings, used
-              for any rows that don't carry their own.
-            </div>
+            <div className="hint-block">{tr('import.help')}</div>
           </section>
         )}
 
         {tab === 'export' && (
           <section className="page">
-            <h2 className="page-title">Export</h2>
-            <p className="page-hint">
-              Download the current banlist as a JSON or CSV file. The JSON
-              format round-trips through Import; the CSV is convenient for
-              spreadsheets.
-            </p>
+            <h2 className="page-title">{tr('export.title')}</h2>
+            <p className="page-hint">{tr('export.hint')}</p>
 
             <div className="export-grid">
               <button
@@ -757,7 +754,9 @@ const PopupApp: React.FC = () => {
               >
                 <span className="export-icon"><Icon.Download /></span>
                 <span className="export-title">JSON</span>
-                <span className="export-sub">{banlist.length} entries</span>
+                <span className="export-sub">
+                  {tr('export.entries', { n: banlist.length })}
+                </span>
               </button>
               <button
                 type="button"
@@ -767,23 +766,22 @@ const PopupApp: React.FC = () => {
               >
                 <span className="export-icon"><Icon.Download /></span>
                 <span className="export-title">CSV</span>
-                <span className="export-sub">{banlist.length} entries</span>
+                <span className="export-sub">
+                  {tr('export.entries', { n: banlist.length })}
+                </span>
               </button>
             </div>
 
-            <div className="hint-block">
-              The file lands in your usual download folder. Re-importing it
-              later restores the same names — duplicates will be skipped.
-            </div>
+            <div className="hint-block">{tr('export.note')}</div>
           </section>
         )}
 
         {tab === 'settings' && (
           <section className="page">
-            <h2 className="page-title">Settings</h2>
+            <h2 className="page-title">{tr('settings.title')}</h2>
             <form onSubmit={handleSaveSettings} className="settings-form">
               <label className="field">
-                <span className="field-label">API server URL</span>
+                <span className="field-label">{tr('settings.urlLabel')}</span>
                 <input
                   type="text"
                   className="input"
@@ -793,43 +791,37 @@ const PopupApp: React.FC = () => {
                     setDraftSettings({ ...draftSettings, apiUrl: e.target.value })
                   }
                 />
-                <span className="field-hint">
-                  Examples: http://localhost:8000, http://192.168.1.10:8000,
-                  https://api.example.com
-                </span>
+                <span className="field-hint">{tr('settings.urlHint')}</span>
               </label>
 
               <label className="field">
-                <span className="field-label">API key</span>
+                <span className="field-label">{tr('settings.keyLabel')}</span>
                 <input
                   type="password"
                   className="input"
-                  placeholder="X-API-Key value"
+                  placeholder="X-API-Key"
                   value={draftSettings.apiKey}
                   onChange={(e) =>
                     setDraftSettings({ ...draftSettings, apiKey: e.target.value })
                   }
                   autoComplete="off"
                 />
-                <span className="field-hint">
-                  Required to add or remove bans. Stored locally. On a public
-                  PurgeQ server, click the button below to receive one.
-                </span>
+                <span className="field-hint">{tr('settings.keyHint')}</span>
                 <button
                   type="button"
                   className="btn btn-ghost btn-self-start"
                   onClick={handleGetKey}
                 >
-                  Get a key with Discord
+                  {tr('settings.getKey')}
                 </button>
               </label>
 
               <label className="field">
-                <span className="field-label">Default author</span>
+                <span className="field-label">{tr('settings.authorLabel')}</span>
                 <input
                   type="text"
                   className="input"
-                  placeholder="Your name (used when banning from FACEIT)"
+                  placeholder={tr('settings.authorLabel')}
                   maxLength={32}
                   value={draftSettings.defaultAuthor}
                   onChange={(e) =>
@@ -839,10 +831,25 @@ const PopupApp: React.FC = () => {
                     })
                   }
                 />
-                <span className="field-hint">
-                  Used as the "author" when you click the inline ban button on a
-                  player card.
-                </span>
+                <span className="field-hint">{tr('settings.authorHint')}</span>
+              </label>
+
+              <label className="field">
+                <span className="field-label">{tr('settings.languageLabel')}</span>
+                <select
+                  className="input"
+                  value={draftSettings.language}
+                  onChange={(e) =>
+                    setDraftSettings({
+                      ...draftSettings,
+                      language: e.target.value as Language,
+                    })
+                  }
+                >
+                  {LANGUAGES.map((l) => (
+                    <option key={l.code} value={l.code}>{l.label}</option>
+                  ))}
+                </select>
               </label>
 
               <div className="settings-actions">
@@ -851,14 +858,14 @@ const PopupApp: React.FC = () => {
                   className="btn btn-ghost"
                   onClick={handleResetSettings}
                 >
-                  Reset
+                  {tr('settings.reset')}
                 </button>
                 <button
                   type="button"
                   className="btn btn-ghost"
                   onClick={handleTestConnection}
                 >
-                  Test connection
+                  {tr('settings.test')}
                 </button>
                 <button
                   type="button"
@@ -868,10 +875,10 @@ const PopupApp: React.FC = () => {
                     setTab('banlist');
                   }}
                 >
-                  Cancel
+                  {tr('settings.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary btn-inline">
-                  Save
+                  {tr('settings.save')}
                 </button>
               </div>
             </form>
@@ -898,7 +905,7 @@ const PopupApp: React.FC = () => {
                 className="btn btn-ghost btn-inline"
                 onClick={() => settleConfirm(false)}
               >
-                Cancel
+                {tr('modal.cancel')}
               </button>
               <button
                 type="button"
@@ -906,7 +913,7 @@ const PopupApp: React.FC = () => {
                 onClick={() => settleConfirm(true)}
                 autoFocus
               >
-                {confirmRequest.confirmLabel ?? 'Confirm'}
+                {confirmRequest.confirmLabel ?? tr('modal.confirm')}
               </button>
             </div>
           </div>

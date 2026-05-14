@@ -1,7 +1,132 @@
 /**
  * Content script — highlights banned FACEIT players and exposes inline ban/unban actions.
- * Self-contained: no shared imports (content scripts in MV3 don't reliably support modules).
+ * MV3 loads content scripts as classic scripts (no top-level imports), so the
+ * minimal subset of i18n strings needed by this file is inlined below rather
+ * than imported from ../shared/i18n. The popup uses the full shared module.
  */
+
+type Language = 'en' | 'fr' | 'pt-BR' | 'ru' | 'tr' | 'es' | 'de';
+
+type CsKey =
+  | 'banButton' | 'unbanButton' | 'banFormTitle'
+  | 'reasonPlaceholder' | 'cancel' | 'confirm' | 'ok'
+  | 'unbanConfirmTitle' | 'unbanConfirmMessage'
+  | 'failedToUnban' | 'unknownError' | 'setDefaultAuthor'
+  | 'reasonLabel' | 'byLabel';
+
+const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
+  en: {
+    banButton: 'Ban', unbanButton: 'Unban',
+    banFormTitle: 'Ban {name}',
+    reasonPlaceholder: 'Reason (1-250 chars)',
+    cancel: 'Cancel', confirm: 'Confirm', ok: 'OK',
+    unbanConfirmTitle: 'Unban {name}',
+    unbanConfirmMessage: 'This player will no longer be highlighted.',
+    failedToUnban: 'Failed to unban', unknownError: 'Unknown error',
+    setDefaultAuthor: 'Set a default author in the extension popup → Settings.',
+    reasonLabel: 'Reason', byLabel: 'By',
+  },
+  fr: {
+    banButton: 'Ban', unbanButton: 'Unban',
+    banFormTitle: 'Bannir {name}',
+    reasonPlaceholder: 'Raison (1-250 caractères)',
+    cancel: 'Annuler', confirm: 'Confirmer', ok: 'OK',
+    unbanConfirmTitle: 'Débannir {name}',
+    unbanConfirmMessage: 'Ce joueur ne sera plus mis en évidence.',
+    failedToUnban: 'Échec du débannissement', unknownError: 'Erreur inconnue',
+    setDefaultAuthor: 'Définis un auteur par défaut dans le popup → Paramètres.',
+    reasonLabel: 'Raison', byLabel: 'Par',
+  },
+  'pt-BR': {
+    banButton: 'Ban', unbanButton: 'Unban',
+    banFormTitle: 'Banir {name}',
+    reasonPlaceholder: 'Motivo (1-250 caracteres)',
+    cancel: 'Cancelar', confirm: 'Confirmar', ok: 'OK',
+    unbanConfirmTitle: 'Desbanir {name}',
+    unbanConfirmMessage: 'Este jogador não será mais destacado.',
+    failedToUnban: 'Falha ao desbanir', unknownError: 'Erro desconhecido',
+    setDefaultAuthor: 'Defina um autor padrão no popup → Configurações.',
+    reasonLabel: 'Motivo', byLabel: 'Por',
+  },
+  ru: {
+    banButton: 'Ban', unbanButton: 'Unban',
+    banFormTitle: 'Забанить {name}',
+    reasonPlaceholder: 'Причина (1-250 символов)',
+    cancel: 'Отмена', confirm: 'Подтвердить', ok: 'OK',
+    unbanConfirmTitle: 'Разбанить {name}',
+    unbanConfirmMessage: 'Этот игрок больше не будет выделяться.',
+    failedToUnban: 'Не удалось разбанить', unknownError: 'Неизвестная ошибка',
+    setDefaultAuthor: 'Задайте автора по умолчанию в попапе → Настройки.',
+    reasonLabel: 'Причина', byLabel: 'От',
+  },
+  tr: {
+    banButton: 'Ban', unbanButton: 'Unban',
+    banFormTitle: '{name} kullanıcısını yasakla',
+    reasonPlaceholder: 'Neden (1-250 karakter)',
+    cancel: 'İptal', confirm: 'Onayla', ok: 'Tamam',
+    unbanConfirmTitle: '{name} yasağını kaldır',
+    unbanConfirmMessage: 'Bu oyuncu artık vurgulanmayacak.',
+    failedToUnban: 'Yasak kaldırılamadı', unknownError: 'Bilinmeyen hata',
+    setDefaultAuthor: 'Eklenti popup → Ayarlar bölümünden varsayılan bir yazar belirleyin.',
+    reasonLabel: 'Neden', byLabel: 'Ekleyen',
+  },
+  es: {
+    banButton: 'Ban', unbanButton: 'Unban',
+    banFormTitle: 'Banear a {name}',
+    reasonPlaceholder: 'Motivo (1-250 caracteres)',
+    cancel: 'Cancelar', confirm: 'Confirmar', ok: 'OK',
+    unbanConfirmTitle: 'Desbanear a {name}',
+    unbanConfirmMessage: 'Este jugador ya no se resaltará.',
+    failedToUnban: 'No se ha podido desbanear', unknownError: 'Error desconocido',
+    setDefaultAuthor: 'Define un autor por defecto en el popup → Ajustes.',
+    reasonLabel: 'Motivo', byLabel: 'Por',
+  },
+  de: {
+    banButton: 'Ban', unbanButton: 'Unban',
+    banFormTitle: '{name} bannen',
+    reasonPlaceholder: 'Grund (1-250 Zeichen)',
+    cancel: 'Abbrechen', confirm: 'Bestätigen', ok: 'OK',
+    unbanConfirmTitle: '{name} entbannen',
+    unbanConfirmMessage: 'Dieser Spieler wird nicht mehr hervorgehoben.',
+    failedToUnban: 'Entbannen fehlgeschlagen', unknownError: 'Unbekannter Fehler',
+    setDefaultAuthor: 'Setze einen Standard-Autor im Popup → Einstellungen.',
+    reasonLabel: 'Grund', byLabel: 'Von',
+  },
+};
+
+let currentLanguage: Language = 'en';
+
+function tr(key: CsKey, vars?: Record<string, string | number>): string {
+  const dict = CS_STRINGS[currentLanguage] ?? CS_STRINGS.en;
+  let str = dict[key] ?? CS_STRINGS.en[key];
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    }
+  }
+  return str;
+}
+
+function detectLanguage(): Language {
+  const code = (typeof navigator !== 'undefined' ? navigator.language : '').toLowerCase();
+  if (code.startsWith('fr')) return 'fr';
+  if (code.startsWith('pt')) return 'pt-BR';
+  if (code.startsWith('ru')) return 'ru';
+  if (code.startsWith('tr')) return 'tr';
+  if (code.startsWith('es')) return 'es';
+  if (code.startsWith('de')) return 'de';
+  return 'en';
+}
+
+async function loadLanguage(): Promise<void> {
+  try {
+    const stored = await chrome.storage.local.get('purgeq_settings');
+    const settings = stored['purgeq_settings'];
+    currentLanguage = (settings?.language as Language) || detectLanguage();
+  } catch {
+    currentLanguage = detectLanguage();
+  }
+}
 
 interface BanlistItem {
   id: string;
@@ -174,17 +299,17 @@ function createUnbanButton(nickname: string, ban: BanlistItem): HTMLButtonElemen
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'purgeq-card-action purgeq-card-action-unban';
-  btn.textContent = '♻ Unban';
-  btn.title = `Banned: ${ban.reason}\nBy: ${ban.author}\n${new Date(
+  btn.textContent = `♻ ${tr('unbanButton')}`;
+  btn.title = `${tr('reasonLabel')}: ${ban.reason}\n${tr('byLabel')}: ${ban.author}\n${new Date(
     ban.created_at
-  ).toLocaleDateString()}\n\nClick to remove from banlist`;
+  ).toLocaleDateString(currentLanguage)}`;
   btn.addEventListener('click', async (e) => {
     e.stopPropagation();
     e.preventDefault();
     const ok = await openConfirmDialog(btn, {
-      title: `Unban ${nickname}`,
-      message: 'This player will no longer be highlighted.',
-      confirmLabel: 'Confirm',
+      title: tr('unbanConfirmTitle', { name: nickname }),
+      message: tr('unbanConfirmMessage'),
+      confirmLabel: tr('confirm'),
     });
     if (!ok) return;
     btn.disabled = true;
@@ -192,8 +317,8 @@ function createUnbanButton(nickname: string, ban: BanlistItem): HTMLButtonElemen
     if (!result.success) {
       btn.disabled = false;
       await openAlertDialog(btn, {
-        title: 'Failed to unban',
-        message: result.error || 'Unknown error',
+        title: tr('failedToUnban'),
+        message: result.error || tr('unknownError'),
       });
     }
   });
@@ -204,8 +329,8 @@ function createBanButton(nickname: string): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'purgeq-card-action purgeq-card-action-ban';
-  btn.textContent = '🚫 Ban';
-  btn.title = `Ban ${nickname}`;
+  btn.textContent = `🚫 ${tr('banButton')}`;
+  btn.title = tr('banFormTitle', { name: nickname });
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     e.preventDefault();
@@ -232,7 +357,7 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
 
   const titleEl = document.createElement('span');
   titleEl.className = 'purgeq-form-title';
-  titleEl.textContent = `Ban ${nickname}`;
+  titleEl.textContent = tr('banFormTitle', { name: nickname });
 
   header.appendChild(iconWrap);
   header.appendChild(titleEl);
@@ -240,7 +365,7 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
 
   const reason = document.createElement('input');
   reason.type = 'text';
-  reason.placeholder = 'Reason (1-250 chars)';
+  reason.placeholder = tr('reasonPlaceholder');
   reason.maxLength = 250;
   reason.required = true;
   reason.className = 'purgeq-input';
@@ -251,7 +376,7 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
 
   const cancel = document.createElement('button');
   cancel.type = 'button';
-  cancel.textContent = 'Cancel';
+  cancel.textContent = tr('cancel');
   cancel.className = 'purgeq-btn purgeq-btn-secondary';
   cancel.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -260,7 +385,7 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
 
   const submit = document.createElement('button');
   submit.type = 'submit';
-  submit.textContent = 'Confirm';
+  submit.textContent = tr('confirm');
   submit.className = 'purgeq-btn purgeq-btn-primary';
 
   actions.appendChild(cancel);
@@ -285,10 +410,8 @@ function openBanForm(anchor: HTMLElement, nickname: string) {
     if (result.success) {
       closeFloating();
     } else {
-      const msg = result.error || 'Failed to add ban';
-      error.textContent = /author/i.test(msg)
-        ? 'Set a default author in the extension popup → Settings.'
-        : msg;
+      const msg = result.error || tr('unknownError');
+      error.textContent = /author/i.test(msg) ? tr('setDefaultAuthor') : msg;
     }
   });
 
@@ -351,10 +474,10 @@ function openConfirmDialog(
       resolve(value);
     };
 
-    const cancel = makeButton(opts.cancelLabel ?? 'Cancel', false, () =>
+    const cancel = makeButton(opts.cancelLabel ?? tr('cancel'), false, () =>
       settle(false)
     );
-    const confirm = makeButton(opts.confirmLabel ?? 'Confirm', true, () =>
+    const confirm = makeButton(opts.confirmLabel ?? tr('confirm'), true, () =>
       settle(true)
     );
     root.actions.appendChild(cancel);
@@ -393,7 +516,7 @@ function openAlertDialog(
       resolve();
     };
 
-    const ok = makeButton(opts.confirmLabel ?? 'OK', true, settle);
+    const ok = makeButton(opts.confirmLabel ?? tr('ok'), true, settle);
     root.actions.appendChild(ok);
 
     showFloating(root.form, anchor);
@@ -737,6 +860,7 @@ function injectStyles() {
 }
 
 async function initialize() {
+  await loadLanguage();
   injectStyles();
   await loadBanlist(false);
   scanCards();
@@ -745,6 +869,17 @@ async function initialize() {
   chrome.runtime.onMessage.addListener((request) => {
     if (request?.type === 'BANLIST_UPDATED') {
       loadBanlist(true);
+    }
+  });
+
+  // Pick up live language changes from the popup so the next ban/unban
+  // form shows the user's new pick without a page reload.
+  chrome.storage.onChanged.addListener((changes) => {
+    const next = changes['purgeq_settings']?.newValue?.language as
+      | Language
+      | undefined;
+    if (next && next !== currentLanguage) {
+      currentLanguage = next;
     }
   });
 }

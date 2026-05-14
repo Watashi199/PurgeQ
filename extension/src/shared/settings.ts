@@ -2,6 +2,8 @@
  * Extension settings stored in chrome.storage.local
  */
 
+import { DEFAULT_LANGUAGE, Language, detectLanguage } from './i18n';
+
 const SETTINGS_KEY = 'purgeq_settings';
 
 export const DEFAULT_API_URL =
@@ -11,12 +13,14 @@ export interface Settings {
   apiUrl: string;
   apiKey: string;
   defaultAuthor: string;
+  language: Language;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   apiUrl: DEFAULT_API_URL,
   apiKey: '',
   defaultAuthor: '',
+  language: DEFAULT_LANGUAGE,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -27,10 +31,11 @@ export async function getSettings(): Promise<Settings> {
       apiUrl: value?.apiUrl?.trim() || DEFAULT_SETTINGS.apiUrl,
       apiKey: value?.apiKey ?? DEFAULT_SETTINGS.apiKey,
       defaultAuthor: value?.defaultAuthor ?? DEFAULT_SETTINGS.defaultAuthor,
+      language: (value?.language as Language) || detectLanguage(),
     };
   } catch (error) {
     console.error('Failed to read settings:', error);
-    return { ...DEFAULT_SETTINGS };
+    return { ...DEFAULT_SETTINGS, language: detectLanguage() };
   }
 }
 
@@ -39,6 +44,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
     apiUrl: normalizeUrl(settings.apiUrl) || DEFAULT_SETTINGS.apiUrl,
     apiKey: settings.apiKey.trim(),
     defaultAuthor: settings.defaultAuthor.trim(),
+    language: settings.language || DEFAULT_LANGUAGE,
   };
   await chrome.storage.local.set({ [SETTINGS_KEY]: normalized });
 }
