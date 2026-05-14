@@ -667,7 +667,7 @@ const PopupApp: React.FC = () => {
                       <div className="ban-line">
                         <span className="muted">{tr('banlist.reasonLabel')}:</span> {item.reason}
                       </div>
-                      <div className="ban-line muted">
+                      <div className="ban-line ban-line-meta muted">
                         {tr('banlist.byLabel')}: {item.author} · {formatDate(item.created_at, settings.language)}
                       </div>
                     </div>
@@ -821,7 +821,6 @@ const PopupApp: React.FC = () => {
                 <input
                   type="text"
                   className="input"
-                  placeholder={tr('settings.authorLabel')}
                   maxLength={32}
                   value={draftSettings.defaultAuthor}
                   onChange={(e) =>
@@ -866,16 +865,6 @@ const PopupApp: React.FC = () => {
                   onClick={handleTestConnection}
                 >
                   {tr('settings.test')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={() => {
-                    setDraftSettings(settings);
-                    setTab('banlist');
-                  }}
-                >
-                  {tr('settings.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary btn-inline">
                   {tr('settings.save')}
