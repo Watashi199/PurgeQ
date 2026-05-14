@@ -1,11 +1,14 @@
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
 sqlalchemy[asyncio]>=2.0.25
 asyncpg>=0.29.1
 psycopg2-binary>=2.9.10
 pydantic>=2.6.0
 pydantic-settings>=2.1.0
 redis>=5.0.1
-python-dotenv==1.0.0
+python-dotenv>=1.0.1
 alembic>=1.12.1
-httpx>=0.25.1
+httpx>=0.27.0
+# starlette is a transitive of fastapi; >=0.40 fixes CVE-2024-47874 and
+# >=0.47.2 fixes CVE-2025-54121. fastapi>=0.115 already pulls a safe range.
+starlette>=0.47.2
