@@ -752,18 +752,18 @@ function injectStyles() {
   style.textContent = `
     [data-purgeq-banned="true"] {
       border-radius: 8px;
-      /* Thin red liseré inside the card border + faint outer glow.
-         box-shadow doesn't push the layout the way `border` would. */
-      box-shadow:
-        inset 0 0 0 1px rgba(220, 50, 50, 0.55),
-        0 0 10px rgba(220, 50, 50, 0.12) !important;
-      transition: box-shadow 0.2s ease-out;
+      /* Thin red rim drawn on top of the card content (FACEIT's children
+         have opaque backgrounds that would hide an inset shadow). Outline
+         is painted over everything and ignored by layout. */
+      outline: 1px solid rgba(220, 50, 50, 0.6) !important;
+      outline-offset: -1px !important;
+      box-shadow: 0 0 12px rgba(220, 50, 50, 0.18) !important;
+      transition: outline-color 0.2s ease-out, box-shadow 0.2s ease-out;
     }
 
     [data-purgeq-banned="true"]:hover {
-      box-shadow:
-        inset 0 0 0 1px rgba(240, 70, 70, 0.85),
-        0 0 14px rgba(240, 70, 70, 0.2) !important;
+      outline-color: rgba(240, 70, 70, 0.95) !important;
+      box-shadow: 0 0 16px rgba(240, 70, 70, 0.28) !important;
     }
 
     [data-purgeq-banned="true"] [class*="Nickname"] {
