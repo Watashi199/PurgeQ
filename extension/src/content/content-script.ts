@@ -774,10 +774,14 @@ function injectStyles() {
       transition: background 0.2s ease-out;
     }
     [data-purgeq-banned="true"]:hover .purgeq-bg-overlay {
+      /* FACEIT lays a white veil on the card at hover; multiply blends our
+         red on top so white * red = red (the veil disappears under our tint)
+         while keeping the same gradient shape. */
+      mix-blend-mode: multiply;
       background: linear-gradient(180deg,
-        rgba(210, 40, 40, 0.55) 0%,
-        rgba(210, 40, 40, 0.18) 35%,
-        rgba(210, 40, 40, 0) 70%);
+        rgba(230, 60, 60, 0.95) 0%,
+        rgba(230, 60, 60, 0.45) 35%,
+        rgba(230, 60, 60, 0) 70%);
     }
 
     [data-testid="playerCard"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action),
