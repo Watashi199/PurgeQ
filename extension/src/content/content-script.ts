@@ -767,15 +767,17 @@ function injectStyles() {
       pointer-events: none;
       border-radius: inherit;
       background: linear-gradient(180deg,
-        rgba(170, 25, 25, 0.78) 0%,
-        rgba(170, 25, 25, 0) 100%);
+        rgba(180, 30, 30, 0.35) 0%,
+        rgba(180, 30, 30, 0.10) 35%,
+        rgba(180, 30, 30, 0) 70%);
       z-index: 1;
-      transition: background 0.18s ease-out;
+      transition: background 0.2s ease-out;
     }
     [data-purgeq-banned="true"]:hover .purgeq-bg-overlay {
       background: linear-gradient(180deg,
-        rgba(210, 35, 35, 0.95) 0%,
-        rgba(210, 35, 35, 0) 100%);
+        rgba(210, 40, 40, 0.55) 0%,
+        rgba(210, 40, 40, 0.18) 35%,
+        rgba(210, 40, 40, 0) 70%);
     }
 
     [data-testid="playerCard"] > *:not(.purgeq-bg-overlay):not(.purgeq-card-action),
