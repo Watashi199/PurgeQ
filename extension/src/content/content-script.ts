@@ -307,10 +307,6 @@ function ensureBgOverlay(card: HTMLElement) {
 function createUnbanButton(nickname: string, ban: BanlistItem): HTMLDivElement {
   const wrap = document.createElement('div');
   wrap.className = 'purgeq-card-action purgeq-banned-row';
-  const tooltip = `${tr('reasonLabel')}: ${ban.reason}\n${tr('byLabel')}: ${ban.author}\n${new Date(
-    ban.created_at
-  ).toLocaleDateString(currentLanguage)}`;
-  wrap.title = tooltip;
 
   // Left pill: prohibition icon + "Banned by PurgeQ" — purely informational.
   const pill = document.createElement('div');
@@ -320,6 +316,7 @@ function createUnbanButton(nickname: string, ban: BanlistItem): HTMLDivElement {
   label.className = 'purgeq-banned-label';
   label.textContent = tr('bannedByPurgeq');
   pill.appendChild(label);
+  attachBanTooltip(pill, ban);
   wrap.appendChild(pill);
 
   // Right control: the actual unban (trash icon).
@@ -350,6 +347,74 @@ function createUnbanButton(nickname: string, ban: BanlistItem): HTMLDivElement {
   wrap.appendChild(trash);
 
   return wrap;
+}
+
+function attachBanTooltip(target: HTMLElement, ban: BanlistItem) {
+  let tipEl: HTMLDivElement | null = null;
+
+  const reposition = () => {
+    if (!tipEl) return;
+    const rect = target.getBoundingClientRect();
+    const tipRect = tipEl.getBoundingClientRect();
+    const margin = 8;
+    let top = rect.top - tipRect.height - 8;
+    let left = rect.left + (rect.width - tipRect.width) / 2;
+    if (top < margin) top = rect.bottom + 8;
+    if (left < margin) left = margin;
+    if (left + tipRect.width > window.innerWidth - margin) {
+      left = window.innerWidth - tipRect.width - margin;
+    }
+    tipEl.style.top = `${top}px`;
+    tipEl.style.left = `${left}px`;
+  };
+
+  const hide = () => {
+    if (!tipEl) return;
+    tipEl.remove();
+    tipEl = null;
+    window.removeEventListener('scroll', reposition, true);
+    window.removeEventListener('resize', reposition);
+  };
+
+  const show = () => {
+    if (tipEl) return;
+    tipEl = document.createElement('div');
+    tipEl.className = 'purgeq-tooltip';
+
+    const reasonRow = document.createElement('div');
+    reasonRow.className = 'purgeq-tooltip-reason';
+    const reasonLabel = document.createElement('span');
+    reasonLabel.className = 'purgeq-tooltip-label';
+    reasonLabel.textContent = tr('reasonLabel');
+    const reasonVal = document.createElement('span');
+    reasonVal.className = 'purgeq-tooltip-value';
+    reasonVal.textContent = ban.reason;
+    reasonRow.append(reasonLabel, reasonVal);
+
+    const meta = document.createElement('div');
+    meta.className = 'purgeq-tooltip-meta';
+    const author = document.createElement('span');
+    author.className = 'purgeq-tooltip-author';
+    author.textContent = `${tr('byLabel')} ${ban.author}`;
+    const dot = document.createElement('span');
+    dot.className = 'purgeq-tooltip-dot';
+    dot.textContent = '·';
+    const date = document.createElement('span');
+    date.className = 'purgeq-tooltip-date';
+    date.textContent = new Date(ban.created_at).toLocaleDateString(currentLanguage);
+    meta.append(author, dot, date);
+
+    tipEl.append(reasonRow, meta);
+    document.body.appendChild(tipEl);
+    reposition();
+    requestAnimationFrame(() => tipEl?.classList.add('purgeq-tooltip-show'));
+    window.addEventListener('scroll', reposition, true);
+    window.addEventListener('resize', reposition);
+  };
+
+  target.addEventListener('mouseenter', show);
+  target.addEventListener('mouseleave', hide);
+  target.addEventListener('mousedown', hide);
 }
 
 function buildProhibitionIcon(): SVGElement {
@@ -1007,6 +1072,74 @@ function injectStyles() {
     }
     .purgeq-form-error:not(:empty) {
       margin-top: 10px;
+    }
+
+    /* ───── Custom hover tooltip on banned pill ───── */
+    .purgeq-tooltip {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 2147483647;
+      max-width: 280px;
+      padding: 9px 12px 10px;
+      background: linear-gradient(180deg, #1c1c20 0%, #131316 100%);
+      color: #f5f5f7;
+      border: 1px solid #2a2a30;
+      border-radius: 8px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55),
+                  0 0 0 1px rgba(255, 255, 255, 0.03);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      line-height: 1.5;
+      letter-spacing: 0.1px;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(2px);
+      transition: opacity 120ms ease, transform 120ms ease;
+      white-space: normal;
+      word-break: break-word;
+    }
+    .purgeq-tooltip.purgeq-tooltip-show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .purgeq-tooltip-reason {
+      display: block;
+    }
+    .purgeq-tooltip-label {
+      display: inline-block;
+      margin-right: 6px;
+      font-weight: 700;
+      font-size: 10.5px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #ff7a4d;
+    }
+    .purgeq-tooltip-value {
+      color: #ececf0;
+    }
+    .purgeq-tooltip-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 11px;
+      color: #9a9aa3;
+    }
+    .purgeq-tooltip-author {
+      max-width: 160px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .purgeq-tooltip-dot {
+      color: #5a5a62;
+    }
+    .purgeq-tooltip-date {
+      color: #c5c5cc;
+      font-variant-numeric: tabular-nums;
     }
   `;
   document.head.appendChild(style);
