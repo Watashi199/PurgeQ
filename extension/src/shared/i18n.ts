@@ -43,7 +43,7 @@ export type StringKey =
   | 'settings.keyLabel' | 'settings.keyHint' | 'settings.getKey'
   | 'settings.authorLabel' | 'settings.authorHint'
   | 'settings.languageLabel'
-  | 'settings.reset' | 'settings.test' | 'settings.cancel' | 'settings.save'
+  | 'settings.reset' | 'settings.test' | 'settings.save'
   // Modal
   | 'modal.unbanTitle' | 'modal.unbanMessage'
   | 'modal.cancel' | 'modal.confirm'
@@ -52,13 +52,7 @@ export type StringKey =
   | 'notif.settingsSaved' | 'notif.connected' | 'notif.exported'
   // Errors
   | 'err.allRequired' | 'err.noApiKey' | 'err.noAuthor' | 'err.emptyExport'
-  | 'err.unreachable' | 'err.permDenied'
-  // Inline ban form on FACEIT pages (content script)
-  | 'cs.banButton' | 'cs.unbanButton' | 'cs.banFormTitle'
-  | 'cs.reasonPlaceholder' | 'cs.cancel' | 'cs.confirm' | 'cs.ok'
-  | 'cs.unbanConfirmTitle' | 'cs.unbanConfirmMessage'
-  | 'cs.failedToUnban' | 'cs.unknownError'
-  | 'cs.setDefaultAuthor';
+  | 'err.unreachable' | 'err.permDenied';
 
 type Dict = Record<StringKey, string>;
 
@@ -108,7 +102,6 @@ const en: Dict = {
   'settings.languageLabel': 'Language',
   'settings.reset': 'Reset',
   'settings.test': 'Test connection',
-  'settings.cancel': 'Cancel',
   'settings.save': 'Save',
 
   'modal.unbanTitle': 'Unban {name}',
@@ -129,19 +122,6 @@ const en: Dict = {
   'err.emptyExport': 'Banlist is empty, nothing to export.',
   'err.unreachable': 'Could not reach the API at {url}.',
   'err.permDenied': 'Permission denied for this URL.',
-
-  'cs.banButton': 'Ban',
-  'cs.unbanButton': 'Unban',
-  'cs.banFormTitle': 'Ban {name}',
-  'cs.reasonPlaceholder': 'Reason (1-250 chars)',
-  'cs.cancel': 'Cancel',
-  'cs.confirm': 'Confirm',
-  'cs.ok': 'OK',
-  'cs.unbanConfirmTitle': 'Unban {name}',
-  'cs.unbanConfirmMessage': 'This player will no longer be highlighted.',
-  'cs.failedToUnban': 'Failed to unban',
-  'cs.unknownError': 'Unknown error',
-  'cs.setDefaultAuthor': 'Set a default author in the extension popup → Settings.',
 };
 
 const fr: Dict = {
@@ -190,7 +170,6 @@ const fr: Dict = {
   'settings.languageLabel': 'Langue',
   'settings.reset': 'Réinitialiser',
   'settings.test': 'Tester la connexion',
-  'settings.cancel': 'Annuler',
   'settings.save': 'Enregistrer',
 
   'modal.unbanTitle': 'Débannir {name}',
@@ -211,19 +190,6 @@ const fr: Dict = {
   'err.emptyExport': 'La banlist est vide, rien à exporter.',
   'err.unreachable': "Impossible d'atteindre l'API à {url}.",
   'err.permDenied': 'Permission refusée pour cette URL.',
-
-  'cs.banButton': 'Ban',
-  'cs.unbanButton': 'Unban',
-  'cs.banFormTitle': 'Bannir {name}',
-  'cs.reasonPlaceholder': 'Raison (1-250 caractères)',
-  'cs.cancel': 'Annuler',
-  'cs.confirm': 'Confirmer',
-  'cs.ok': 'OK',
-  'cs.unbanConfirmTitle': 'Débannir {name}',
-  'cs.unbanConfirmMessage': 'Ce joueur ne sera plus mis en évidence.',
-  'cs.failedToUnban': 'Échec du débannissement',
-  'cs.unknownError': 'Erreur inconnue',
-  'cs.setDefaultAuthor': 'Définis un auteur par défaut dans le popup → Paramètres.',
 };
 
 const ptBR: Dict = {
@@ -272,7 +238,6 @@ const ptBR: Dict = {
   'settings.languageLabel': 'Idioma',
   'settings.reset': 'Redefinir',
   'settings.test': 'Testar conexão',
-  'settings.cancel': 'Cancelar',
   'settings.save': 'Salvar',
 
   'modal.unbanTitle': 'Desbanir {name}',
@@ -293,19 +258,6 @@ const ptBR: Dict = {
   'err.emptyExport': 'A banlist está vazia, nada para exportar.',
   'err.unreachable': 'Não foi possível alcançar a API em {url}.',
   'err.permDenied': 'Permissão negada para esta URL.',
-
-  'cs.banButton': 'Ban',
-  'cs.unbanButton': 'Unban',
-  'cs.banFormTitle': 'Banir {name}',
-  'cs.reasonPlaceholder': 'Motivo (1-250 caracteres)',
-  'cs.cancel': 'Cancelar',
-  'cs.confirm': 'Confirmar',
-  'cs.ok': 'OK',
-  'cs.unbanConfirmTitle': 'Desbanir {name}',
-  'cs.unbanConfirmMessage': 'Este jogador não será mais destacado.',
-  'cs.failedToUnban': 'Falha ao desbanir',
-  'cs.unknownError': 'Erro desconhecido',
-  'cs.setDefaultAuthor': 'Defina um autor padrão no popup da extensão → Configurações.',
 };
 
 const ru: Dict = {
@@ -354,7 +306,6 @@ const ru: Dict = {
   'settings.languageLabel': 'Язык',
   'settings.reset': 'Сбросить',
   'settings.test': 'Проверить соединение',
-  'settings.cancel': 'Отмена',
   'settings.save': 'Сохранить',
 
   'modal.unbanTitle': 'Разбанить {name}',
@@ -375,19 +326,6 @@ const ru: Dict = {
   'err.emptyExport': 'Бан-лист пуст, экспортировать нечего.',
   'err.unreachable': 'Не удалось подключиться к API по адресу {url}.',
   'err.permDenied': 'Доступ к этому URL запрещён.',
-
-  'cs.banButton': 'Ban',
-  'cs.unbanButton': 'Unban',
-  'cs.banFormTitle': 'Забанить {name}',
-  'cs.reasonPlaceholder': 'Причина (1-250 символов)',
-  'cs.cancel': 'Отмена',
-  'cs.confirm': 'Подтвердить',
-  'cs.ok': 'OK',
-  'cs.unbanConfirmTitle': 'Разбанить {name}',
-  'cs.unbanConfirmMessage': 'Этот игрок больше не будет выделяться.',
-  'cs.failedToUnban': 'Не удалось разбанить',
-  'cs.unknownError': 'Неизвестная ошибка',
-  'cs.setDefaultAuthor': 'Задайте автора по умолчанию в попапе → Настройки.',
 };
 
 const tr: Dict = {
@@ -436,7 +374,6 @@ const tr: Dict = {
   'settings.languageLabel': 'Dil',
   'settings.reset': 'Sıfırla',
   'settings.test': 'Bağlantıyı test et',
-  'settings.cancel': 'İptal',
   'settings.save': 'Kaydet',
 
   'modal.unbanTitle': '{name} yasağını kaldır',
@@ -457,19 +394,6 @@ const tr: Dict = {
   'err.emptyExport': 'Banlist boş, dışa aktarılacak bir şey yok.',
   'err.unreachable': '{url} adresindeki API\'ye ulaşılamadı.',
   'err.permDenied': 'Bu URL için izin reddedildi.',
-
-  'cs.banButton': 'Ban',
-  'cs.unbanButton': 'Unban',
-  'cs.banFormTitle': '{name} kullanıcısını yasakla',
-  'cs.reasonPlaceholder': 'Neden (1-250 karakter)',
-  'cs.cancel': 'İptal',
-  'cs.confirm': 'Onayla',
-  'cs.ok': 'Tamam',
-  'cs.unbanConfirmTitle': '{name} yasağını kaldır',
-  'cs.unbanConfirmMessage': 'Bu oyuncu artık vurgulanmayacak.',
-  'cs.failedToUnban': 'Yasak kaldırılamadı',
-  'cs.unknownError': 'Bilinmeyen hata',
-  'cs.setDefaultAuthor': 'Eklenti popup → Ayarlar bölümünden varsayılan bir yazar belirleyin.',
 };
 
 const es: Dict = {
@@ -518,7 +442,6 @@ const es: Dict = {
   'settings.languageLabel': 'Idioma',
   'settings.reset': 'Restablecer',
   'settings.test': 'Probar conexión',
-  'settings.cancel': 'Cancelar',
   'settings.save': 'Guardar',
 
   'modal.unbanTitle': 'Desbanear a {name}',
@@ -539,19 +462,6 @@ const es: Dict = {
   'err.emptyExport': 'La banlist está vacía, nada que exportar.',
   'err.unreachable': 'No se ha podido contactar la API en {url}.',
   'err.permDenied': 'Permiso denegado para esta URL.',
-
-  'cs.banButton': 'Ban',
-  'cs.unbanButton': 'Unban',
-  'cs.banFormTitle': 'Banear a {name}',
-  'cs.reasonPlaceholder': 'Motivo (1-250 caracteres)',
-  'cs.cancel': 'Cancelar',
-  'cs.confirm': 'Confirmar',
-  'cs.ok': 'OK',
-  'cs.unbanConfirmTitle': 'Desbanear a {name}',
-  'cs.unbanConfirmMessage': 'Este jugador ya no se resaltará.',
-  'cs.failedToUnban': 'No se ha podido desbanear',
-  'cs.unknownError': 'Error desconocido',
-  'cs.setDefaultAuthor': 'Define un autor por defecto en el popup → Ajustes.',
 };
 
 const de: Dict = {
@@ -600,7 +510,6 @@ const de: Dict = {
   'settings.languageLabel': 'Sprache',
   'settings.reset': 'Zurücksetzen',
   'settings.test': 'Verbindung testen',
-  'settings.cancel': 'Abbrechen',
   'settings.save': 'Speichern',
 
   'modal.unbanTitle': '{name} entbannen',
@@ -621,19 +530,6 @@ const de: Dict = {
   'err.emptyExport': 'Banlist ist leer, nichts zu exportieren.',
   'err.unreachable': 'API unter {url} nicht erreichbar.',
   'err.permDenied': 'Berechtigung für diese URL verweigert.',
-
-  'cs.banButton': 'Ban',
-  'cs.unbanButton': 'Unban',
-  'cs.banFormTitle': '{name} bannen',
-  'cs.reasonPlaceholder': 'Grund (1-250 Zeichen)',
-  'cs.cancel': 'Abbrechen',
-  'cs.confirm': 'Bestätigen',
-  'cs.ok': 'OK',
-  'cs.unbanConfirmTitle': '{name} entbannen',
-  'cs.unbanConfirmMessage': 'Dieser Spieler wird nicht mehr hervorgehoben.',
-  'cs.failedToUnban': 'Entbannen fehlgeschlagen',
-  'cs.unknownError': 'Unbekannter Fehler',
-  'cs.setDefaultAuthor': 'Setze einen Standard-Autor im Popup → Einstellungen.',
 };
 
 const translations: Record<Language, Dict> = {
