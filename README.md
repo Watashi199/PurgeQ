@@ -1,6 +1,6 @@
-# PurgeQ
-
-## Never queue with that guy. Again.
+<p align="center">
+  <img src="https://scrn.wsrv.xyz/u/ivurB0.png" alt="PurgeQ Banner" width="100%">
+</p>
 
 PurgeQ lets you flag players you never want to queue with again.  
 Banned players are highlighted directly on FACEIT profiles, lobbies, party and match rooms, so you can avoid known trolls before the game starts.
