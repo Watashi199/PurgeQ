@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://scrn.wsrv.xyz/u/ivurB0.png" alt="PurgeQ Banner" width="100%">
+  <img src="https://scrn.wsrv.xyz/u/ivurB0.png" alt="PurgeQ Banner">
 </p>
 
 PurgeQ lets you flag players you never want to queue with again.  
