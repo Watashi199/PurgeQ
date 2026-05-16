@@ -103,8 +103,9 @@ jobs:
           unzip -q "purgeq-firefox-${VERSION}.zip" -d .ff-build
           # AMO requires every listed version to carry a license slug; we
           # pass it via --amo-metadata (matches the LICENSE file at repo root).
+          # The field must sit under `version.license`, not at the top level.
           cat > amo-metadata.json <<'EOF'
-          {"license": "MIT"}
+          {"version": {"license": "MIT"}}
           EOF
           npx --yes web-ext@8 sign \
             --channel=listed \
