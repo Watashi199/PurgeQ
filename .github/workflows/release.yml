@@ -101,11 +101,16 @@ jobs:
           # build we just produced (it already has the merged gecko manifest).
           rm -rf .ff-build && mkdir .ff-build
           unzip -q "purgeq-firefox-${VERSION}.zip" -d .ff-build
-          # AMO requires every listed version to carry a license slug; we
-          # pass it via --amo-metadata (matches the LICENSE file at repo root).
-          # The field must sit under `version.license`, not at the top level.
+          # AMO requires categories, summary, and version.license to be present
+          # in every listed submission's metadata. Categories/summary mirror
+          # what's already on the addon listing; we just re-send them on each
+          # version. License matches the LICENSE file at repo root.
           cat > amo-metadata.json <<'EOF'
-          {"version": {"license": "MIT"}}
+          {
+            "categories": ["games-entertainment"],
+            "summary": "Real-time FACEIT player banlist checker with offline support",
+            "version": {"license": "MIT"}
+          }
           EOF
           npx --yes web-ext@8 sign \
             --channel=listed \
