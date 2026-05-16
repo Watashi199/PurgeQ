@@ -1,6 +1,6 @@
 {
   "name": "purgeq-extension",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "PurgeQ Chrome/Firefox extension for FACEIT banlist",
   "type": "module",
   "scripts": {
