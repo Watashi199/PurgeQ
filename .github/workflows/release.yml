@@ -108,7 +108,7 @@ jobs:
           cat > amo-metadata.json <<'EOF'
           {
             "categories": ["games-entertainment"],
-            "summary": "Real-time FACEIT player banlist checker with offline support",
+            "summary": {"en-US": "Real-time FACEIT player banlist checker with offline support"},
             "version": {"license": "MIT"}
           }
           EOF
