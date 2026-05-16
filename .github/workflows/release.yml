@@ -112,11 +112,16 @@ jobs:
             "version": {"license": "MIT"}
           }
           EOF
+          # --approval-timeout=0 short-circuits the post-submission wait —
+          # for listed channel that wait is the human review queue (days),
+          # which CI must not block on. Submission itself is still
+          # synchronous, so any submission error still surfaces here.
           npx --yes web-ext@8 sign \
             --channel=listed \
             --source-dir=.ff-build \
             --upload-source-code="purgeq-source-${VERSION}.zip" \
             --amo-metadata=amo-metadata.json \
+            --approval-timeout=0 \
             --no-config-discovery
 
       - name: Attach zips to GitHub Release
