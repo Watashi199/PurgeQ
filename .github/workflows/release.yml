@@ -90,7 +90,9 @@ jobs:
             --auto-publish
 
       - name: Submit to Firefox AMO (listed channel)
-        if: ${{ !inputs.dry_run }}
+        # Run even if the Chrome step failed — the two stores are independent
+        # and shouldn't be coupled. Still skipped on dry-run.
+        if: ${{ !inputs.dry_run && !cancelled() }}
         env:
           WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
           WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
@@ -99,10 +101,16 @@ jobs:
           # build we just produced (it already has the merged gecko manifest).
           rm -rf .ff-build && mkdir .ff-build
           unzip -q "purgeq-firefox-${VERSION}.zip" -d .ff-build
+          # AMO requires every listed version to carry a license slug; we
+          # pass it via --amo-metadata (matches the LICENSE file at repo root).
+          cat > amo-metadata.json <<'EOF'
+          {"license": "MIT"}
+          EOF
           npx --yes web-ext@8 sign \
             --channel=listed \
             --source-dir=.ff-build \
             --upload-source-code="purgeq-source-${VERSION}.zip" \
+            --amo-metadata=amo-metadata.json \
             --no-config-discovery
 
       - name: Attach zips to GitHub Release
