@@ -1,0 +1,97 @@
+# Publishes the extension to the Chrome Web Store and Firefox AMO
+# when a semver tag (e.g. 2.1.2) is pushed.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#
+#   Chrome Web Store
+#     CWS_EXTENSION_ID   — the extension's Chrome ID (visible in the store URL)
+#     CWS_CLIENT_ID      — OAuth2 client ID
+#     CWS_CLIENT_SECRET  — OAuth2 client secret
+#     CWS_REFRESH_TOKEN  — OAuth2 refresh token (long-lived)
+#   How to obtain: enable the Chrome Web Store API in Google Cloud,
+#   create an OAuth2 client (type "Desktop"), then exchange an auth code
+#   for a refresh token once. Docs:
+#   https://developer.chrome.com/docs/webstore/using-api
+#
+#   Firefox AMO
+#     AMO_JWT_ISSUER  — JWT issuer
+#     AMO_JWT_SECRET  — JWT secret
+#   How to obtain: https://addons.mozilla.org/developers/addon/api/key/
+
+name: Release to stores
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+permissions:
+  contents: write  # softprops/action-gh-release needs this to attach assets
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify tag matches manifest version
+        run: |
+          MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
+          if [ "$GITHUB_REF_NAME" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag '$GITHUB_REF_NAME' does not match manifest.json version '$MANIFEST_VERSION'."
+            exit 1
+          fi
+
+      - name: Build Chrome, Firefox, and source packages
+        run: |
+          npm run package
+          npm run package:firefox
+          npm run package:source
+
+      - name: Upload to Chrome Web Store
+        env:
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          npx --yes chrome-webstore-upload-cli@3 upload \
+            --source "purgeq-${GITHUB_REF_NAME}.zip" \
+            --auto-publish
+
+      - name: Submit to Firefox AMO (listed channel)
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          # web-ext sign expects an unpacked directory, so unzip the Firefox
+          # build we just produced (it already has the merged gecko manifest).
+          rm -rf .ff-build && mkdir .ff-build
+          unzip -q "purgeq-firefox-${GITHUB_REF_NAME}.zip" -d .ff-build
+          npx --yes web-ext@8 sign \
+            --channel=listed \
+            --source-dir=.ff-build \
+            --upload-source-code="purgeq-source-${GITHUB_REF_NAME}.zip" \
+            --no-config-discovery
+
+      - name: Attach zips to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            extension/purgeq-${{ github.ref_name }}.zip
+            extension/purgeq-firefox-${{ github.ref_name }}.zip
+            extension/purgeq-source-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          fail_on_unmatched_files: true
