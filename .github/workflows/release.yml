@@ -24,6 +24,12 @@ on:
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — build only, no store upload, no GitHub Release update."
+        type: boolean
+        default: true
 
 permissions:
   contents: write  # softprops/action-gh-release needs this to attach assets
@@ -46,13 +52,24 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify tag matches manifest version
+      - name: Resolve version (verify tag matches manifest on tag pushes)
+        id: version
         run: |
           MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
-          if [ "$GITHUB_REF_NAME" != "$MANIFEST_VERSION" ]; then
-            echo "::error::Tag '$GITHUB_REF_NAME' does not match manifest.json version '$MANIFEST_VERSION'."
-            exit 1
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            if [ "$GITHUB_REF_NAME" != "$MANIFEST_VERSION" ]; then
+              echo "::error::Tag '$GITHUB_REF_NAME' does not match manifest.json version '$MANIFEST_VERSION'."
+              exit 1
+            fi
+            VERSION="$GITHUB_REF_NAME"
+          else
+            VERSION="$MANIFEST_VERSION"
           fi
+          # Exposed both as a step output (for YAML expressions like
+          # steps.version.outputs.value) and as $VERSION in later shell steps.
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "Resolved version: $VERSION"
 
       - name: Build Chrome, Firefox, and source packages
         run: |
@@ -61,6 +78,7 @@ jobs:
           npm run package:source
 
       - name: Upload to Chrome Web Store
+        if: ${{ !inputs.dry_run }}
         env:
           EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
           CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
@@ -68,10 +86,11 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
         run: |
           npx --yes chrome-webstore-upload-cli@3 upload \
-            --source "purgeq-${GITHUB_REF_NAME}.zip" \
+            --source "purgeq-${VERSION}.zip" \
             --auto-publish
 
       - name: Submit to Firefox AMO (listed channel)
+        if: ${{ !inputs.dry_run }}
         env:
           WEB_EXT_API_KEY: ${{ secrets.AMO_JWT_ISSUER }}
           WEB_EXT_API_SECRET: ${{ secrets.AMO_JWT_SECRET }}
@@ -79,14 +98,17 @@ jobs:
           # web-ext sign expects an unpacked directory, so unzip the Firefox
           # build we just produced (it already has the merged gecko manifest).
           rm -rf .ff-build && mkdir .ff-build
-          unzip -q "purgeq-firefox-${GITHUB_REF_NAME}.zip" -d .ff-build
+          unzip -q "purgeq-firefox-${VERSION}.zip" -d .ff-build
           npx --yes web-ext@8 sign \
             --channel=listed \
             --source-dir=.ff-build \
-            --upload-source-code="purgeq-source-${GITHUB_REF_NAME}.zip" \
+            --upload-source-code="purgeq-source-${VERSION}.zip" \
             --no-config-discovery
 
       - name: Attach zips to GitHub Release
+        # Skipped on workflow_dispatch entirely — Releases are tied to tags,
+        # so we never touch them from a manual run.
+        if: ${{ github.event_name == 'push' }}
         uses: softprops/action-gh-release@v2
         with:
           files: |
@@ -95,3 +117,9 @@ jobs:
             extension/purgeq-source-${{ github.ref_name }}.zip
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      - name: Dry-run summary
+        if: ${{ inputs.dry_run }}
+        run: |
+          echo "::notice::Dry run for version $VERSION — built three zips, skipped all store/release calls."
+          ls -la "purgeq-${VERSION}.zip" "purgeq-firefox-${VERSION}.zip" "purgeq-source-${VERSION}.zip"
