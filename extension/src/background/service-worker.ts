@@ -1,52 +1,78 @@
 /**
- * Background service worker for PurgeQ extension
+ * Background service worker — Supabase backend.
+ *
+ * Talks to Supabase on behalf of the popup and content scripts so the
+ * session token never leaks into FACEIT pages. Maintains a 60s-refresh
+ * Map<faceit_name, BanInfo> in chrome.storage.local that the content
+ * script reads via the GET_BANLIST message.
  */
 
 import {
+  addBan,
   clearBanlistCache,
-  getApiBaseUrl,
-  getApiKey,
-  getBanlist,
-  REFRESH_INTERVAL,
-} from '../shared/utils';
-import { getSettings, hasApiHostPermission } from '../shared/settings';
+  getCachedBanlist,
+  refreshBanlistFromSupabase,
+  removeBanById,
+  resetPersonalBanlistCache,
+  type AddBanInput,
+} from '../shared/banlist-store';
+import { getSettings } from '../shared/settings';
+import { supabase } from '../shared/supabase';
 
 const ALARM_NAME = 'purgeq_refresh';
+const REFRESH_INTERVAL_MIN = 1;
+
+// ─────────────── Lifecycle ───────────────
 
 chrome.runtime.onInstalled.addListener(() => {
-  console.log('PurgeQ extension installed');
-  refreshBanlist();
+  console.log('[PurgeQ] Extension installed');
   setupRefreshSchedule();
+  refreshIfSignedIn();
 });
 
 function setupRefreshSchedule() {
   chrome.alarms.clear(ALARM_NAME);
-  chrome.alarms.create(ALARM_NAME, {
-    periodInMinutes: Math.max(1, Math.ceil(REFRESH_INTERVAL / 60000)),
-  });
+  chrome.alarms.create(ALARM_NAME, { periodInMinutes: REFRESH_INTERVAL_MIN });
 }
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === ALARM_NAME) {
-    refreshBanlist();
+    refreshIfSignedIn();
   }
 });
 
+// Make sure the alarm exists even after a service-worker restart.
+setupRefreshSchedule();
+
+// ─────────────── Auth state ───────────────
+
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    refreshBanlist().catch((err) =>
+      console.error('[PurgeQ] Auth-triggered refresh failed:', err)
+    );
+  } else if (event === 'SIGNED_OUT') {
+    resetPersonalBanlistCache();
+    clearBanlistCache()
+      .then(() => notifyTabs({ type: 'BANLIST_UPDATED' }))
+      .catch((err) => console.error('[PurgeQ] Sign-out clear failed:', err));
+  }
+});
+
+// ─────────────── Refresh ───────────────
+
+async function refreshIfSignedIn() {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) return; // Anonymous — nothing to fetch.
+  await refreshBanlist();
+}
+
 async function refreshBanlist() {
   try {
-    const apiUrl = await getApiBaseUrl();
-    if (!(await hasApiHostPermission(apiUrl))) {
-      console.log(
-        `Skipping refresh: no host permission for ${apiUrl}. Open the popup to grant it.`
-      );
-      return;
-    }
-
-    await clearBanlistCache();
-    await getBanlist();
+    await refreshBanlistFromSupabase();
     notifyTabs({ type: 'BANLIST_UPDATED' });
   } catch (error) {
-    console.error('Failed to refresh banlist:', error);
+    console.error('[PurgeQ] Failed to refresh banlist:', error);
   }
 }
 
@@ -62,79 +88,26 @@ function notifyTabs(message: unknown) {
   });
 }
 
-interface BanPayload {
-  faceit_name: string;
-  reason: string;
-  author: string;
-}
-
-async function addBan(payload: BanPayload) {
-  const apiUrl = await getApiBaseUrl();
-  const apiKey = await getApiKey();
-  if (!apiKey) throw new Error('API key is not set. Open the popup settings.');
-
-  if (!(await hasApiHostPermission(apiUrl))) {
-    throw new Error(`No permission to reach ${apiUrl}. Open the popup to grant it.`);
-  }
-
-  const response = await fetch(`${apiUrl}/api/v1/ban`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-API-Key': apiKey,
-    },
-    body: JSON.stringify(payload),
-  });
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`HTTP ${response.status}${detail ? `: ${detail}` : ''}`);
-  }
-
-  await refreshBanlist();
-}
-
-async function removeBan(faceitName: string) {
-  const apiUrl = await getApiBaseUrl();
-  const apiKey = await getApiKey();
-  if (!apiKey) throw new Error('API key is not set. Open the popup settings.');
-
-  if (!(await hasApiHostPermission(apiUrl))) {
-    throw new Error(`No permission to reach ${apiUrl}. Open the popup to grant it.`);
-  }
-
-  const response = await fetch(
-    `${apiUrl}/api/v1/ban/${encodeURIComponent(faceitName)}`,
-    {
-      method: 'DELETE',
-      headers: { 'X-API-Key': apiKey },
-    }
-  );
-
-  if (!response.ok && response.status !== 204) {
-    const detail = await response.text().catch(() => '');
-    throw new Error(`HTTP ${response.status}${detail ? `: ${detail}` : ''}`);
-  }
-
-  await refreshBanlist();
-}
+// ─────────────── Message router ───────────────
 
 chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request?.type === 'GET_BANLIST') {
-    getBanlist()
+    getCachedBanlist()
       .then((banlist) => {
         sendResponse({ success: true, data: Object.fromEntries(banlist) });
       })
       .catch((error) => {
-        sendResponse({ success: false, error: error.message });
+        sendResponse({ success: false, error: String(error?.message ?? error) });
       });
     return true;
   }
 
   if (request?.type === 'REFRESH_BANLIST') {
-    refreshBanlist()
+    refreshIfSignedIn()
       .then(() => sendResponse({ success: true }))
-      .catch((error) => sendResponse({ success: false, error: error.message }));
+      .catch((error) =>
+        sendResponse({ success: false, error: String(error?.message ?? error) })
+      );
     return true;
   }
 
@@ -142,19 +115,20 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     (async () => {
       try {
         const settings = await getSettings();
-        const payload: BanPayload = {
+        const payload: AddBanInput = {
           faceit_name: String(request.payload?.faceit_name || '').trim(),
           reason: String(request.payload?.reason || '').trim(),
-          author:
+          author_name:
             String(request.payload?.author || '').trim() ||
             settings.defaultAuthor.trim(),
         };
-        if (!payload.faceit_name || !payload.reason || !payload.author) {
+        if (!payload.faceit_name || !payload.reason || !payload.author_name) {
           throw new Error(
             'faceit_name, reason and author are required (set a default author in popup settings).'
           );
         }
         await addBan(payload);
+        await refreshBanlist();
         sendResponse({ success: true });
       } catch (error) {
         sendResponse({
@@ -166,12 +140,26 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     return true;
   }
 
+  if (request?.type === 'AUTH_CHANGED') {
+    // Popup just signed in or out — pull a fresh session and refresh.
+    refreshIfSignedIn()
+      .then(() => sendResponse({ success: true }))
+      .catch((error) =>
+        sendResponse({ success: false, error: String(error?.message ?? error) })
+      );
+    return true;
+  }
+
   if (request?.type === 'REMOVE_BAN') {
     (async () => {
       try {
-        const name = String(request.payload?.faceit_name || '').trim();
+        const name = String(request.payload?.faceit_name || '').trim().toLowerCase();
         if (!name) throw new Error('faceit_name is required');
-        await removeBan(name);
+        const cache = await getCachedBanlist();
+        const ban = cache.get(name);
+        if (!ban) throw new Error('Ban not found in local cache');
+        await removeBanById(ban.id);
+        await refreshBanlist();
         sendResponse({ success: true });
       } catch (error) {
         sendResponse({
@@ -185,5 +173,3 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
 
   return false;
 });
-
-setupRefreshSchedule();

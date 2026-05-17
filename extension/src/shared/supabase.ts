@@ -42,4 +42,67 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   },
 });
 
+/**
+ * Sign in with Discord via chrome.identity.launchWebAuthFlow.
+ *
+ * Must be called from the popup (or another UI context with user activation)
+ * — chrome.identity is not available in content scripts and won't open an
+ * auth popup without a user gesture.
+ *
+ * The Supabase Auth → URL Configuration → Redirect URLs list must include
+ * `https://<extension-id>.chromiumapp.org/*` for the callback to be accepted.
+ * Get the redirect URL with chrome.identity.getRedirectURL().
+ */
+export async function signInWithDiscord(): Promise<void> {
+  const redirectTo = chrome.identity.getRedirectURL();
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'discord',
+    options: {
+      redirectTo,
+      skipBrowserRedirect: true,
+    },
+  });
+  if (error) throw error;
+  if (!data?.url) throw new Error('No OAuth URL returned from Supabase');
+
+  const responseUrl = await new Promise<string>((resolve, reject) => {
+    chrome.identity.launchWebAuthFlow(
+      { url: data.url, interactive: true },
+      (result) => {
+        const lastError = chrome.runtime.lastError;
+        if (lastError) {
+          reject(new Error(lastError.message));
+          return;
+        }
+        if (!result) {
+          reject(new Error('Auth flow was cancelled'));
+          return;
+        }
+        resolve(result);
+      }
+    );
+  });
+
+  // Supabase returns the tokens in the URL hash (#access_token=...&refresh_token=...).
+  const hash = new URL(responseUrl).hash.slice(1);
+  const params = new URLSearchParams(hash);
+  const accessToken = params.get('access_token');
+  const refreshToken = params.get('refresh_token');
+  if (!accessToken || !refreshToken) {
+    throw new Error('Missing tokens in OAuth redirect URL');
+  }
+
+  const { error: setSessionError } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
+  if (setSessionError) throw setSessionError;
+}
+
+export async function signOut(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
+}
+
 export type { Database } from './db.types';

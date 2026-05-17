@@ -12,7 +12,7 @@ type CsKey =
   | 'reasonPlaceholder' | 'cancel' | 'confirm' | 'ok'
   | 'unbanConfirmTitle' | 'unbanConfirmMessage'
   | 'failedToUnban' | 'unknownError' | 'setDefaultAuthor'
-  | 'reasonLabel' | 'byLabel' | 'bannedByPurgeq';
+  | 'reasonLabel' | 'byLabel' | 'bannedByPurgeq' | 'viaLabel';
 
 const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
   en: {
@@ -26,6 +26,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     setDefaultAuthor: 'Set a default author in the extension popup → Settings.',
     reasonLabel: 'Reason', byLabel: 'By',
     bannedByPurgeq: 'Banned',
+    viaLabel: 'Via',
   },
   fr: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -38,6 +39,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     setDefaultAuthor: 'Définis un auteur par défaut dans le popup → Paramètres.',
     reasonLabel: 'Raison', byLabel: 'Par',
     bannedByPurgeq: 'Banni',
+    viaLabel: 'Via',
   },
   'pt-BR': {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -50,6 +52,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     setDefaultAuthor: 'Defina um autor padrão no popup → Configurações.',
     reasonLabel: 'Motivo', byLabel: 'Por',
     bannedByPurgeq: 'Banido',
+    viaLabel: 'De',
   },
   ru: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -62,6 +65,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     setDefaultAuthor: 'Задайте автора по умолчанию в попапе → Настройки.',
     reasonLabel: 'Причина', byLabel: 'От',
     bannedByPurgeq: 'Забанен',
+    viaLabel: 'Из',
   },
   tr: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -74,6 +78,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     setDefaultAuthor: 'Eklenti popup → Ayarlar bölümünden varsayılan bir yazar belirleyin.',
     reasonLabel: 'Neden', byLabel: 'Ekleyen',
     bannedByPurgeq: 'Yasaklı',
+    viaLabel: 'Şuradan',
   },
   es: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -86,6 +91,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     setDefaultAuthor: 'Define un autor por defecto en el popup → Ajustes.',
     reasonLabel: 'Motivo', byLabel: 'Por',
     bannedByPurgeq: 'Baneado',
+    viaLabel: 'Vía',
   },
   de: {
     banButton: 'Ban', unbanButton: 'Unban',
@@ -98,6 +104,7 @@ const CS_STRINGS: Record<Language, Record<CsKey, string>> = {
     setDefaultAuthor: 'Setze einen Standard-Autor im Popup → Einstellungen.',
     reasonLabel: 'Grund', byLabel: 'Von',
     bannedByPurgeq: 'Gebannt',
+    viaLabel: 'Aus',
   },
 };
 
@@ -140,6 +147,14 @@ interface BanlistItem {
   faceit_name: string;
   reason: string;
   author: string;
+  /**
+   * Banlist this entry comes from. Populated by the Supabase-backed SW.
+   * Optional for backwards compat with any stale cache from older builds.
+   */
+  banlist_name?: string;
+  banlist_id?: string;
+  /** True when this ban lives in the user's own banlist (vs a shared one). */
+  is_own?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -405,6 +420,21 @@ function attachBanTooltip(target: HTMLElement, ban: BanlistItem) {
     meta.append(author, dot, date);
 
     tipEl.append(reasonRow, meta);
+
+    // Shared-banlist attribution row: only shown when this ban came from a
+    // banlist the user does not own (someone shared their list with them).
+    if (ban.is_own === false && ban.banlist_name) {
+      const source = document.createElement('div');
+      source.className = 'purgeq-tooltip-source';
+      const sourceLabel = document.createElement('span');
+      sourceLabel.className = 'purgeq-tooltip-source-label';
+      sourceLabel.textContent = tr('viaLabel');
+      const sourceVal = document.createElement('span');
+      sourceVal.className = 'purgeq-tooltip-source-value';
+      sourceVal.textContent = ban.banlist_name;
+      source.append(sourceLabel, sourceVal);
+      tipEl.appendChild(source);
+    }
     document.body.appendChild(tipEl);
     reposition();
     requestAnimationFrame(() => tipEl?.classList.add('purgeq-tooltip-show'));
@@ -1140,6 +1170,28 @@ function injectStyles() {
     .purgeq-tooltip-date {
       color: #c5c5cc;
       font-variant-numeric: tabular-nums;
+    }
+    .purgeq-tooltip-source {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      font-size: 10.5px;
+      letter-spacing: 0.4px;
+      color: #8d8d96;
+    }
+    .purgeq-tooltip-source-label {
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #ff7a4d;
+      opacity: 0.85;
+    }
+    .purgeq-tooltip-source-value {
+      color: #d4d4dc;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
   `;
   document.head.appendChild(style);

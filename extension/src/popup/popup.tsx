@@ -1,33 +1,42 @@
 /**
- * PurgeQ Popup React Component
+ * PurgeQ Popup — Supabase-backed.
+ *
+ * Auth-gated: shows a sign-in splash when no Supabase session is present,
+ * otherwise renders the full UI (banlist, export, settings).
+ *
+ * All ban data is queried via shared/banlist-store which routes through
+ * Supabase + RLS. The popup also broadcasts BANLIST_UPDATED to all tabs
+ * after a mutation so content scripts on FACEIT refresh instantly.
  */
 
 import React, { useEffect, useState } from 'react';
 import ReactDOM from 'react-dom/client';
+import type { Session } from '@supabase/supabase-js';
 import {
-  BanlistItem,
-  clearBanlistCache,
-  getApiBaseUrl,
-  getApiKey,
-  getBanlist,
-} from '../shared/utils';
+  addBan as supabaseAddBan,
+  refreshBanlistFromSupabase,
+  removeBanById,
+  type BanInfo,
+} from '../shared/banlist-store';
 import {
-  DEFAULT_API_URL,
-  Settings,
   getSettings,
-  hasApiHostPermission,
-  requestApiHostPermission,
   saveSettings,
+  type Settings,
 } from '../shared/settings';
+import {
+  signInWithDiscord,
+  signOut,
+  supabase,
+} from '../shared/supabase';
 import {
   DEFAULT_LANGUAGE,
   LANGUAGES,
-  Language,
-  StringKey,
+  type Language,
+  type StringKey,
   t,
 } from '../shared/i18n';
 
-type Tab = 'banlist' | 'import' | 'export' | 'settings';
+type Tab = 'banlist' | 'export' | 'settings';
 
 interface ConfirmRequest {
   title: string;
@@ -36,47 +45,33 @@ interface ConfirmRequest {
   resolve: (ok: boolean) => void;
 }
 
+interface Profile {
+  display_name: string;
+  discord_id: string;
+}
+
 const Icon = {
   Shield: () => (
     <svg viewBox="0 0 24 24" width={20} height={20} fill="none"
       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path
-        stroke="#ff5500"
-        strokeWidth="2"
-        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"
-      />
-      <path
-        stroke="#ffffff"
-        strokeWidth="2"
-        d="m8 12 3 3 5-5"
-      />
+      <path stroke="#ff5500" strokeWidth="2"
+        d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      <path stroke="#ffffff" strokeWidth="2" d="m8 12 3 3 5-5" />
     </svg>
   ),
   List: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-      <line x1="8" y1="6" x2="21" y2="6" />
-      <line x1="8" y1="12" x2="21" y2="12" />
-      <line x1="8" y1="18" x2="21" y2="18" />
-      <line x1="3" y1="6" x2="3.01" y2="6" />
-      <line x1="3" y1="12" x2="3.01" y2="12" />
-      <line x1="3" y1="18" x2="3.01" y2="18" />
-    </svg>
-  ),
-  Upload: () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="17 8 12 3 7 8" />
-      <line x1="12" y1="3" x2="12" y2="15" />
+      <line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" />
+      <line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" />
+      <line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" />
     </svg>
   ),
   Download: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
+      <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   ),
   Settings: () => (
@@ -89,8 +84,7 @@ const Icon = {
   Refresh: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-      <polyline points="23 4 23 10 17 10" />
-      <polyline points="1 20 1 14 7 14" />
+      <polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" />
       <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
     </svg>
   ),
@@ -106,8 +100,19 @@ const Icon = {
   Search: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  ),
+  Discord: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+      <path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.073.035c-.211.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0c-.164-.395-.405-.874-.617-1.249a.077.077 0 0 0-.073-.035 19.736 19.736 0 0 0-4.885 1.515.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.371-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.099.245.197.372.291a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.893.077.077 0 0 0-.041.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.42-2.157 2.42zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.42-2.157 2.42z"/>
+    </svg>
+  ),
+  LogOut: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   ),
   GitHub: () => (
@@ -115,32 +120,18 @@ const Icon = {
       <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55v-1.92c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.24 3.35.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.17a10.9 10.9 0 0 1 5.75 0c2.2-1.48 3.16-1.17 3.16-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
     </svg>
   ),
-  Star: () => (
-    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
-      <path d="m12 2.5 3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 18.27l-6.18 3.23L7 14.63l-5-4.87 6.91-1L12 2.5Z"/>
-    </svg>
-  ),
-  X: () => (
-    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true">
-      <path d="M18.244 2H21l-6.522 7.452L22 22h-6.828l-4.77-6.234L4.8 22H2l7.07-8.078L2 2h6.914l4.302 5.69L18.244 2Zm-1.197 18h1.62L7.04 3.93H5.3l11.747 16.07Z"/>
-    </svg>
-  ),
 };
 
 function avatarColor(name: string): string {
-  // Deterministic hue from the nickname so each avatar has a stable color.
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0;
-  const hue = hash % 360;
-  return `hsl(${hue}, 65%, 50%)`;
+  return `hsl(${hash % 360}, 65%, 50%)`;
 }
 
 function formatDate(iso: string, lang: Language): string {
   try {
     return new Date(iso).toLocaleDateString(lang, {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
+      day: '2-digit', month: '2-digit', year: 'numeric',
     });
   } catch {
     return '';
@@ -148,58 +139,74 @@ function formatDate(iso: string, lang: Language): string {
 }
 
 const PopupApp: React.FC = () => {
+  // Auth state
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // UI state
   const [tab, setTab] = useState<Tab>('banlist');
-  const [banlist, setBanlist] = useState<BanlistItem[]>([]);
+  const [banlist, setBanlist] = useState<BanInfo[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [newBan, setNewBan] = useState({ faceit_name: '', reason: '' });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [settings, setSettings] = useState<Settings>({
-    apiUrl: DEFAULT_API_URL,
-    apiKey: '',
     defaultAuthor: '',
     language: DEFAULT_LANGUAGE,
   });
   const [draftSettings, setDraftSettings] = useState<Settings>({
-    apiUrl: DEFAULT_API_URL,
-    apiKey: '',
     defaultAuthor: '',
     language: DEFAULT_LANGUAGE,
   });
+  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
 
   const tr = (key: StringKey, vars?: Record<string, string | number>) =>
     t(key, settings.language, vars);
 
-  /**
-   * Broadcast a BANLIST_UPDATED notice to every open tab so that content
-   * scripts on FACEIT pages re-scan and drop / add the red glow without
-   * waiting for the next 60 s alarm.
-   *
-   * Mutations from the popup go directly to the API (not through the
-   * service worker), so we have to do the fan-out ourselves.
-   */
-  function notifyTabsBanlistChanged() {
-    try {
-      chrome.tabs.query({}, (tabs) => {
-        for (const tab of tabs) {
-          if (tab.id == null) continue;
-          chrome.tabs.sendMessage(tab.id, { type: 'BANLIST_UPDATED' }, () => {
-            void chrome.runtime.lastError;
-          });
-        }
-      });
-    } catch {
-      // Extension reloaded mid-session — ignore.
-    }
-  }
-  const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+  // ─── Auth bootstrap ───
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await getSettings();
+        setSettings(stored);
+        setDraftSettings(stored);
 
-  function askConfirm(
-    title: string,
-    message: string,
-    confirmLabel?: string
-  ): Promise<boolean> {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        setSession(initialSession);
+        if (initialSession) {
+          await loadProfile();
+          await loadBanlist();
+        }
+      } finally {
+        setAuthLoading(false);
+      }
+    })();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, newSession) => {
+        setSession(newSession);
+        if (!newSession) {
+          setProfile(null);
+          setBanlist([]);
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Auto-clear toasts.
+  useEffect(() => {
+    if (!error && !success) return;
+    const timer = setTimeout(() => {
+      setError('');
+      setSuccess('');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [error, success]);
+
+  function askConfirm(title: string, message: string, confirmLabel?: string): Promise<boolean> {
     return new Promise((resolve) => {
       setConfirmRequest({ title, message, confirmLabel, resolve });
     });
@@ -211,326 +218,182 @@ const PopupApp: React.FC = () => {
     setConfirmRequest(null);
   }
 
-  useEffect(() => {
-    (async () => {
-      const stored = await getSettings();
-      setSettings(stored);
-      setDraftSettings(stored);
-      await loadBanlist();
-    })();
-  }, []);
+  function notifyTabsBanlistChanged() {
+    try {
+      chrome.tabs.query({}, (tabs) => {
+        for (const tab of tabs) {
+          if (tab.id == null) continue;
+          chrome.tabs.sendMessage(tab.id, { type: 'BANLIST_UPDATED' }, () => {
+            void chrome.runtime.lastError;
+          });
+        }
+      });
+    } catch {
+      // Extension reloaded mid-session.
+    }
+  }
 
-  useEffect(() => {
-    if (!error && !success) return;
-    const timer = setTimeout(() => {
-      setError('');
-      setSuccess('');
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [error, success]);
+  // ─── Data loaders ───
+  async function loadProfile() {
+    const { data } = await supabase
+      .from('profiles')
+      .select('display_name, discord_id')
+      .maybeSingle();
+    if (data) setProfile(data);
+  }
 
   async function loadBanlist() {
     try {
       setLoading(true);
-      const apiUrl = await getApiBaseUrl();
-      const banlistMap = await getBanlist();
-      const items = Array.from(banlistMap.values());
-      setBanlist(
-        items.sort(
-          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        )
+      const map = await refreshBanlistFromSupabase();
+      const items = Array.from(map.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
-
-      if (items.length === 0) {
-        const probe = await fetch(`${apiUrl}/`).catch(() => null);
-        if (!probe || !probe.ok) {
-          const allowed = await hasApiHostPermission(apiUrl);
-          if (!allowed) {
-            setError(
-              `Could not reach ${apiUrl}. Open Settings and click Save to grant access.`
-            );
-            setTab('settings');
-          } else {
-            setError(
-              `Could not reach the API at ${apiUrl}. Check that the server is running.`
-            );
-          }
-        }
-      }
+      setBanlist(items);
     } catch (err) {
-      setError(`Failed to load banlist: ${err}`);
+      setError(`Failed to load banlist: ${err instanceof Error ? err.message : err}`);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleTestConnection() {
-    const url = (draftSettings.apiUrl.trim() || DEFAULT_API_URL).replace(/\/+$/, '');
+  // ─── Auth actions ───
+  async function handleSignIn() {
     setError('');
-    setSuccess('');
     try {
-      const granted = await requestApiHostPermission(url);
-      if (!granted) {
-        setError(tr('err.permDenied'));
-        return;
-      }
-      const response = await fetch(`${url}/`);
-      if (response.ok) {
-        const data = await response.json().catch(() => null);
-        const version = data?.version ? ` (v${data.version})` : '';
-        setSuccess(`${tr('notif.connected', { url })}${version}`);
-      } else {
-        setError(`HTTP ${response.status} — ${url}`);
-      }
+      setAuthLoading(true);
+      await signInWithDiscord();
+      // Tell the SW so it refreshes its cache.
+      chrome.runtime.sendMessage({ type: 'AUTH_CHANGED' }, () => {
+        void chrome.runtime.lastError;
+      });
+      await loadProfile();
+      await loadBanlist();
+      notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`${tr('err.unreachable', { url })} ${err}`);
+      setError(`Sign-in failed: ${err instanceof Error ? err.message : err}`);
+    } finally {
+      setAuthLoading(false);
     }
   }
 
+  async function handleSignOut() {
+    const ok = await askConfirm('Sign out', 'You will need to sign in again to see your banlist.');
+    if (!ok) return;
+    try {
+      await signOut();
+      chrome.runtime.sendMessage({ type: 'AUTH_CHANGED' }, () => {
+        void chrome.runtime.lastError;
+      });
+      notifyTabsBanlistChanged();
+    } catch (err) {
+      setError(`Sign-out failed: ${err instanceof Error ? err.message : err}`);
+    }
+  }
+
+  // ─── Ban actions ───
   async function handleAddBan(e: React.FormEvent) {
     e.preventDefault();
-    const author = settings.defaultAuthor.trim();
-    if (!newBan.faceit_name || !newBan.reason) {
+    const author = settings.defaultAuthor.trim() || profile?.display_name || 'User';
+    if (!newBan.faceit_name.trim() || !newBan.reason.trim()) {
       setError(tr('err.allRequired'));
       return;
     }
-    if (!author) {
-      setError(tr('err.noAuthor'));
-      return;
-    }
-
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      setError(tr('err.noApiKey'));
-      return;
-    }
-
     try {
       setLoading(true);
-      const apiUrl = await getApiBaseUrl();
-      const response = await fetch(`${apiUrl}/api/v1/ban`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-Key': apiKey,
-        },
-        body: JSON.stringify({ ...newBan, author }),
+      await supabaseAddBan({
+        faceit_name: newBan.faceit_name,
+        reason: newBan.reason,
+        author_name: author,
       });
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
       setSuccess(tr('notif.added'));
       setNewBan({ faceit_name: '', reason: '' });
-      await clearBanlistCache();
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`${err}`);
+      setError(`${err instanceof Error ? err.message : err}`);
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleDeleteBan(faceitName: string) {
+  async function handleDeleteBan(item: BanInfo) {
     const ok = await askConfirm(
-      tr('modal.unbanTitle', { name: faceitName }),
+      tr('modal.unbanTitle', { name: item.faceit_name }),
       tr('modal.unbanMessage')
     );
     if (!ok) return;
-
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      setError(tr('err.noApiKey'));
-      return;
-    }
-
     try {
-      const apiUrl = await getApiBaseUrl();
-      const response = await fetch(
-        `${apiUrl}/api/v1/ban/${encodeURIComponent(faceitName)}`,
-        {
-          method: 'DELETE',
-          headers: { 'X-API-Key': apiKey },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      setSuccess(tr('notif.removed', { name: faceitName }));
-      await clearBanlistCache();
+      await removeBanById(item.id);
+      setSuccess(tr('notif.removed', { name: item.faceit_name }));
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`${err}`);
+      setError(`${err instanceof Error ? err.message : err}`);
     }
   }
 
   async function handleRefresh() {
     try {
-      setLoading(true);
-      await clearBanlistCache();
       await loadBanlist();
       notifyTabsBanlistChanged();
       setSuccess(tr('notif.refreshed'));
     } catch (err) {
-      setError(`${err}`);
-    } finally {
-      setLoading(false);
+      setError(`${err instanceof Error ? err.message : err}`);
     }
   }
 
-  async function handleImportFile(file: File) {
-    const apiKey = await getApiKey();
-    if (!apiKey) {
-      setError(tr('err.noApiKey'));
-      return;
-    }
-
-    const apiUrl = await getApiBaseUrl();
-    const author = settings.defaultAuthor.trim();
-    if (!author) {
-      setError(tr('err.noAuthor'));
-      return;
-    }
-
-    let body: string;
-    let contentType: string;
-    const lower = file.name.toLowerCase();
-    const text = await file.text();
-
-    if (lower.endsWith('.csv')) {
-      body = text;
-      contentType = 'text/csv';
-    } else {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        setError('Could not parse the JSON file');
-        return;
-      }
-      const items = Array.isArray(parsed)
-        ? parsed
-        : Array.isArray((parsed as { items?: unknown }).items)
-          ? (parsed as { items: unknown[] }).items
-          : null;
-      if (!items) {
-        setError('JSON must be an array of names/objects, or {items: [...]}');
-        return;
-      }
-      body = JSON.stringify({
-        items,
-        default_author: author,
-        default_reason: 'Imported',
-      });
-      contentType = 'application/json';
-    }
-
-    try {
-      setLoading(true);
-      const url = new URL(`${apiUrl}/api/v1/banlist/import`);
-      if (contentType === 'text/csv') {
-        url.searchParams.set('author', author);
-      }
-      const response = await fetch(url.toString(), {
-        method: 'POST',
-        headers: { 'Content-Type': contentType, 'X-API-Key': apiKey },
-        body,
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      const summary = (await response.json()) as {
-        imported: number;
-        skipped: string[];
-        failed: { input: string; reason: string }[];
-      };
-      const parts = [`${summary.imported} imported`];
-      if (summary.skipped.length) parts.push(`${summary.skipped.length} skipped`);
-      if (summary.failed.length) parts.push(`${summary.failed.length} failed`);
-      setSuccess(parts.join(', '));
-      if (summary.failed.length) {
-        console.warn('[PurgeQ] Import failures:', summary.failed);
-      }
-      await clearBanlistCache();
-      await loadBanlist();
-      notifyTabsBanlistChanged();
-      setTab('banlist');
-    } catch (err) {
-      setError(`Import failed: ${err}`);
-    } finally {
-      setLoading(false);
-    }
-  }
-
+  // ─── Settings ───
   async function handleSaveSettings(e: React.FormEvent) {
     e.preventDefault();
     try {
-      const granted = await requestApiHostPermission(draftSettings.apiUrl);
-      if (!granted) {
-        setError(tr('err.permDenied'));
-        return;
-      }
       await saveSettings(draftSettings);
       const refreshed = await getSettings();
       setSettings(refreshed);
       setDraftSettings(refreshed);
-      await clearBanlistCache();
-      await loadBanlist();
       setSuccess(tr('notif.settingsSaved'));
       setTab('banlist');
     } catch (err) {
-      setError(`${err}`);
+      setError(`${err instanceof Error ? err.message : err}`);
     }
   }
 
   function handleResetSettings() {
     setDraftSettings({
-      apiUrl: DEFAULT_API_URL,
-      apiKey: '',
       defaultAuthor: '',
       language: settings.language,
     });
   }
 
+  // ─── Export ───
   function handleExport(format: 'json' | 'csv') {
     if (banlist.length === 0) {
       setError(tr('err.emptyExport'));
       return;
     }
-
     const stamp = new Date().toISOString().slice(0, 10);
     let content: string;
     let mime: string;
     let filename: string;
 
     if (format === 'json') {
-      content = JSON.stringify(
-        {
-          exported_at: new Date().toISOString(),
-          items: banlist.map((b) => ({
-            faceit_name: b.faceit_name,
-            reason: b.reason,
-            author: b.author,
-            created_at: b.created_at,
-          })),
-        },
-        null,
-        2
-      );
+      content = JSON.stringify({
+        exported_at: new Date().toISOString(),
+        items: banlist.map((b) => ({
+          faceit_name: b.faceit_name,
+          reason: b.reason,
+          author: b.author,
+          banlist: b.banlist_name,
+          created_at: b.created_at,
+        })),
+      }, null, 2);
       mime = 'application/json';
       filename = `purgeq-banlist-${stamp}.json`;
     } else {
       const escape = (v: string) => `"${v.replace(/"/g, '""')}"`;
-      const rows = ['faceit_name,reason,author,created_at'];
+      const rows = ['faceit_name,reason,author,banlist,created_at'];
       for (const b of banlist) {
-        rows.push(
-          [b.faceit_name, b.reason, b.author, b.created_at].map(escape).join(',')
-        );
+        rows.push([b.faceit_name, b.reason, b.author, b.banlist_name, b.created_at].map(escape).join(','));
       }
       content = rows.join('\n');
       mime = 'text/csv;charset=utf-8';
@@ -546,14 +409,7 @@ const PopupApp: React.FC = () => {
     link.click();
     document.body.removeChild(link);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setSuccess(
-      tr('notif.exported', { n: banlist.length, format: format.toUpperCase() })
-    );
-  }
-
-  function handleGetKey() {
-    const url = (draftSettings.apiUrl.trim() || DEFAULT_API_URL).replace(/\/+$/, '');
-    chrome.tabs.create({ url: `${url}/signup` });
+    setSuccess(tr('notif.exported', { n: banlist.length, format: format.toUpperCase() }));
   }
 
   const filteredBanlist = banlist.filter(
@@ -562,6 +418,38 @@ const PopupApp: React.FC = () => {
       item.reason.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // ─────────────── Auth gate ───────────────
+  if (authLoading) {
+    return (
+      <div className="popup-container">
+        <main className="main centered">
+          <div className="empty">{tr('banlist.loading')}</div>
+        </main>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="popup-container">
+        <main className="main centered">
+          <div className="auth-splash">
+            <div className="brand">
+              <span className="brand-icon"><Icon.Shield /></span>
+              <span className="brand-name">PurgeQ</span>
+            </div>
+            <p className="page-hint">Sign in with Discord to access your banlist.</p>
+            {error && <div className="alert alert-error">{error}</div>}
+            <button type="button" className="btn btn-primary" onClick={handleSignIn}>
+              <Icon.Discord /> <span>Sign in with Discord</span>
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ─────────────── Authenticated UI ───────────────
   return (
     <div className="popup-container">
       <aside className="sidebar">
@@ -575,12 +463,6 @@ const PopupApp: React.FC = () => {
             onClick={() => setTab('banlist')}
           >
             <Icon.List /> <span>{tr('nav.banlist')}</span>
-          </button>
-          <button
-            className={`nav-item ${tab === 'import' ? 'is-active' : ''}`}
-            onClick={() => setTab('import')}
-          >
-            <Icon.Upload /> <span>{tr('nav.import')}</span>
           </button>
           <button
             className={`nav-item ${tab === 'export' ? 'is-active' : ''}`}
@@ -599,38 +481,20 @@ const PopupApp: React.FC = () => {
           </button>
         </nav>
         <div className="sidebar-links">
-          <a
-            href="https://github.com/Watashi199/PurgeQ"
-            target="_blank"
-            rel="noreferrer"
-            title="GitHub repository"
-            className="sidebar-link"
-          >
+          <a href="https://github.com/Watashi199/PurgeQ" target="_blank" rel="noreferrer"
+            title="GitHub" className="sidebar-link">
             <Icon.GitHub />
           </a>
-          <a
-            href="https://github.com/Watashi199/PurgeQ/stargazers"
-            target="_blank"
-            rel="noreferrer"
-            title="Star the repo"
-            className="sidebar-link sidebar-link-star"
-          >
-            <Icon.Star />
-          </a>
-          <a
-            href="https://x.com/Watashi_R6S"
-            target="_blank"
-            rel="noreferrer"
-            title="@Watashi_R6S on X"
-            className="sidebar-link"
-          >
-            <Icon.X />
-          </a>
         </div>
-
         <div className="sidebar-footer">
-          <div className="footer-label">{tr('footer.server')}</div>
-          <div className="footer-value" title={settings.apiUrl}>{settings.apiUrl}</div>
+          {profile && (
+            <>
+              <div className="footer-label">Signed in</div>
+              <div className="footer-value" title={profile.discord_id}>
+                {profile.display_name}
+              </div>
+            </>
+          )}
           <div className="footer-value">{tr('footer.banned')}: {banlist.length}</div>
         </div>
       </aside>
@@ -663,14 +527,6 @@ const PopupApp: React.FC = () => {
               >
                 <Icon.Refresh />
               </button>
-              <button
-                type="button"
-                className="icon-btn"
-                title={tr('banlist.importShortcutTooltip')}
-                onClick={() => setTab('import')}
-              >
-                <Icon.Upload />
-              </button>
             </div>
 
             <div className="banlist">
@@ -690,7 +546,14 @@ const PopupApp: React.FC = () => {
                       {item.faceit_name.charAt(0).toUpperCase()}
                     </div>
                     <div className="ban-meta">
-                      <div className="ban-name">{item.faceit_name}</div>
+                      <div className="ban-name">
+                        {item.faceit_name}
+                        {!item.is_own && (
+                          <span className="ban-source" title={`From shared list: ${item.banlist_name}`}>
+                            {' '}· {item.banlist_name}
+                          </span>
+                        )}
+                      </div>
                       <div className="ban-line">
                         <span className="muted">{tr('banlist.reasonLabel')}:</span> {item.reason}
                       </div>
@@ -702,7 +565,7 @@ const PopupApp: React.FC = () => {
                       type="button"
                       className="delete-btn"
                       title={tr('banlist.deleteTooltip')}
-                      onClick={() => handleDeleteBan(item.faceit_name)}
+                      onClick={() => handleDeleteBan(item)}
                     >
                       <Icon.Trash />
                     </button>
@@ -719,9 +582,7 @@ const PopupApp: React.FC = () => {
                   className="input"
                   placeholder={tr('addBan.faceitPlaceholder')}
                   value={newBan.faceit_name}
-                  onChange={(e) =>
-                    setNewBan({ ...newBan, faceit_name: e.target.value })
-                  }
+                  onChange={(e) => setNewBan({ ...newBan, faceit_name: e.target.value })}
                 />
                 <input
                   type="text"
@@ -730,11 +591,7 @@ const PopupApp: React.FC = () => {
                   value={newBan.reason}
                   onChange={(e) => setNewBan({ ...newBan, reason: e.target.value })}
                 />
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={loading}
-                >
+                <button type="submit" className="btn btn-primary" disabled={loading}>
                   {tr('addBan.submit')}
                 </button>
               </form>
@@ -742,36 +599,10 @@ const PopupApp: React.FC = () => {
           </section>
         )}
 
-        {tab === 'import' && (
-          <section className="page">
-            <h2 className="page-title">{tr('import.title')}</h2>
-            <p className="page-hint">{tr('import.hint')}</p>
-
-            <label className="dropzone">
-              <Icon.Upload />
-              <div className="dropzone-title">{tr('import.dropzoneTitle')}</div>
-              <div className="dropzone-hint">{tr('import.dropzoneHint')}</div>
-              <input
-                type="file"
-                accept=".json,.csv,.txt"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  e.target.value = '';
-                  if (file) handleImportFile(file);
-                }}
-              />
-            </label>
-
-            <div className="hint-block">{tr('import.help')}</div>
-          </section>
-        )}
-
         {tab === 'export' && (
           <section className="page">
             <h2 className="page-title">{tr('export.title')}</h2>
             <p className="page-hint">{tr('export.hint')}</p>
-
             <div className="export-grid">
               <button
                 type="button"
@@ -781,9 +612,7 @@ const PopupApp: React.FC = () => {
               >
                 <span className="export-icon"><Icon.Download /></span>
                 <span className="export-title">JSON</span>
-                <span className="export-sub">
-                  {tr('export.entries', { n: banlist.length })}
-                </span>
+                <span className="export-sub">{tr('export.entries', { n: banlist.length })}</span>
               </button>
               <button
                 type="button"
@@ -793,12 +622,9 @@ const PopupApp: React.FC = () => {
               >
                 <span className="export-icon"><Icon.Download /></span>
                 <span className="export-title">CSV</span>
-                <span className="export-sub">
-                  {tr('export.entries', { n: banlist.length })}
-                </span>
+                <span className="export-sub">{tr('export.entries', { n: banlist.length })}</span>
               </button>
             </div>
-
             <div className="hint-block">{tr('export.note')}</div>
           </section>
         )}
@@ -808,53 +634,15 @@ const PopupApp: React.FC = () => {
             <h2 className="page-title">{tr('settings.title')}</h2>
             <form onSubmit={handleSaveSettings} className="settings-form">
               <label className="field">
-                <span className="field-label">{tr('settings.urlLabel')}</span>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="http://localhost:8000"
-                  value={draftSettings.apiUrl}
-                  onChange={(e) =>
-                    setDraftSettings({ ...draftSettings, apiUrl: e.target.value })
-                  }
-                />
-                <span className="field-hint">{tr('settings.urlHint')}</span>
-              </label>
-
-              <label className="field">
-                <span className="field-label">{tr('settings.keyLabel')}</span>
-                <input
-                  type="password"
-                  className="input"
-                  placeholder="X-API-Key"
-                  value={draftSettings.apiKey}
-                  onChange={(e) =>
-                    setDraftSettings({ ...draftSettings, apiKey: e.target.value })
-                  }
-                  autoComplete="off"
-                />
-                <span className="field-hint">{tr('settings.keyHint')}</span>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-self-start"
-                  onClick={handleGetKey}
-                >
-                  {tr('settings.getKey')}
-                </button>
-              </label>
-
-              <label className="field">
                 <span className="field-label">{tr('settings.authorLabel')}</span>
                 <input
                   type="text"
                   className="input"
                   maxLength={32}
                   value={draftSettings.defaultAuthor}
+                  placeholder={profile?.display_name ?? ''}
                   onChange={(e) =>
-                    setDraftSettings({
-                      ...draftSettings,
-                      defaultAuthor: e.target.value,
-                    })
+                    setDraftSettings({ ...draftSettings, defaultAuthor: e.target.value })
                   }
                 />
                 <span className="field-hint">{tr('settings.authorHint')}</span>
@@ -866,10 +654,7 @@ const PopupApp: React.FC = () => {
                   className="input"
                   value={draftSettings.language}
                   onChange={(e) =>
-                    setDraftSettings({
-                      ...draftSettings,
-                      language: e.target.value as Language,
-                    })
+                    setDraftSettings({ ...draftSettings, language: e.target.value as Language })
                   }
                 >
                   {LANGUAGES.map((l) => (
@@ -879,25 +664,28 @@ const PopupApp: React.FC = () => {
               </label>
 
               <div className="settings-actions">
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={handleResetSettings}
-                >
+                <button type="button" className="btn btn-ghost" onClick={handleResetSettings}>
                   {tr('settings.reset')}
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={handleTestConnection}
-                >
-                  {tr('settings.test')}
                 </button>
                 <button type="submit" className="btn btn-primary btn-inline">
                   {tr('settings.save')}
                 </button>
               </div>
             </form>
+
+            <div className="settings-divider" />
+
+            <div className="settings-account">
+              {profile && (
+                <div className="account-row">
+                  <span className="muted">Signed in as</span>
+                  <strong>{profile.display_name}</strong>
+                </div>
+              )}
+              <button type="button" className="btn btn-ghost" onClick={handleSignOut}>
+                <Icon.LogOut /> <span>Sign out</span>
+              </button>
+            </div>
           </section>
         )}
       </main>
