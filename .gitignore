@@ -39,7 +39,7 @@ logs/
 *.swo
 *~
 .claude/
-*.mcp
+.mcp.json
 
 # Docker
 .dockerignore
