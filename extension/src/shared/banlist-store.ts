@@ -109,8 +109,16 @@ export async function refreshBanlistFromSupabase(): Promise<Map<string, BanInfo>
  */
 let _personalBanlistIdCache: string | null = null;
 
+/**
+ * Cache of the current user's display_name, used as the fallback author
+ * when an ADD_BAN message arrives without one (e.g. the inline ban form
+ * on a FACEIT card where the user hasn't set a custom author yet).
+ */
+let _displayNameCache: string | null = null;
+
 export function resetPersonalBanlistCache(): void {
   _personalBanlistIdCache = null;
+  _displayNameCache = null;
 }
 
 async function getPersonalBanlistId(): Promise<string> {
@@ -131,10 +139,33 @@ async function getPersonalBanlistId(): Promise<string> {
   return data.id;
 }
 
+async function getDisplayName(): Promise<string> {
+  if (_displayNameCache) return _displayNameCache;
+
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData?.user?.id;
+  if (!userId) throw new Error('Not signed in');
+
+  const { data } = await supabase
+    .from('profiles')
+    .select('display_name')
+    .eq('id', userId)
+    .maybeSingle();
+
+  _displayNameCache = data?.display_name?.trim() || 'User';
+  return _displayNameCache;
+}
+
 export interface AddBanInput {
   faceit_name: string;
   reason: string;
-  author_name: string;
+  /**
+   * Display name attached to this ban entry. If omitted or empty, the
+   * user's Discord display_name is used (resolved + cached on first call).
+   * That covers the inline FACEIT ban form, which doesn't know — and
+   * shouldn't have to ask — the user's preferred author label.
+   */
+  author_name?: string;
 }
 
 /**
@@ -148,6 +179,7 @@ export async function addBan(input: AddBanInput): Promise<void> {
   if (!userId) throw new Error('Not signed in');
 
   const banlistId = await getPersonalBanlistId();
+  const authorName = input.author_name?.trim() || (await getDisplayName());
 
   const { error } = await supabase
     .from('bans')
@@ -156,7 +188,7 @@ export async function addBan(input: AddBanInput): Promise<void> {
       faceit_name: input.faceit_name.trim(),
       reason: input.reason.trim(),
       author_id: userId,
-      author_name: input.author_name.trim(),
+      author_name: authorName,
     });
 
   if (error) throw error;

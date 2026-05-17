@@ -115,17 +115,18 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     (async () => {
       try {
         const settings = await getSettings();
+        // author_name precedence: explicit payload > Settings default > the
+        // Discord display_name (filled in by addBan() itself when this is blank).
         const payload: AddBanInput = {
           faceit_name: String(request.payload?.faceit_name || '').trim(),
           reason: String(request.payload?.reason || '').trim(),
           author_name:
             String(request.payload?.author || '').trim() ||
-            settings.defaultAuthor.trim(),
+            settings.defaultAuthor.trim() ||
+            undefined,
         };
-        if (!payload.faceit_name || !payload.reason || !payload.author_name) {
-          throw new Error(
-            'faceit_name, reason and author are required (set a default author in popup settings).'
-          );
+        if (!payload.faceit_name || !payload.reason) {
+          throw new Error('faceit_name and reason are required');
         }
         await addBan(payload);
         await refreshBanlist();

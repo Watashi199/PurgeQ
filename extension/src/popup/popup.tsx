@@ -558,6 +558,11 @@ const PopupApp: React.FC = () => {
     const myId = userData?.user?.id;
     if (!myId) return;
 
+    // Profile might not have been fetched yet if the user clicked Share
+    // before the bootstrap effect resolved — refresh it here so the
+    // "Members of your banlist" header doesn't render with em-dashes.
+    if (!profile) await loadProfile();
+
     const { data: owned } = await supabase
       .from('banlists')
       .select('id, name')
@@ -572,6 +577,11 @@ const PopupApp: React.FC = () => {
     const memberRows: MemberRow[] = [];
     const idsToResolve = new Set<string>();
 
+    // Placeholder used when the profiles resolution step doesn't return a
+    // match (RLS edge cases / stale data). Better than an em-dash, which
+    // reads as "the name is missing on purpose".
+    const FALLBACK_NAME = 'User';
+
     if (owned) {
       const { data: ownedMembers } = await supabase
         .from('banlist_members')
@@ -582,7 +592,7 @@ const PopupApp: React.FC = () => {
         memberRows.push({
           user_id: m.user_id,
           role: m.role as ShareRole,
-          display_name: '—', // filled in step 2
+          display_name: FALLBACK_NAME, // overwritten in step 2 on match
           discord_id: '',
           banlist_id: owned.id,
           banlist_name: owned.name,
@@ -602,7 +612,7 @@ const PopupApp: React.FC = () => {
       memberRows.push({
         user_id: bl.owner_id,
         role: row.role as ShareRole,
-        display_name: '—',
+        display_name: FALLBACK_NAME,
         discord_id: '',
         banlist_id: bl.id,
         banlist_name: bl.name,
@@ -1129,12 +1139,20 @@ const PopupApp: React.FC = () => {
                     <div className="member-card">
                       <div
                         className="avatar avatar-sm"
-                        style={{ background: avatarColor(profile?.display_name ?? 'you') }}
+                        style={{
+                          background: avatarColor(
+                            profile?.display_name || ownedBanlist.name || 'you'
+                          ),
+                        }}
                       >
-                        {(profile?.display_name ?? 'U').charAt(0).toUpperCase()}
+                        {(profile?.display_name || ownedBanlist.name || 'U')
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
                       <div className="member-meta">
-                        <div className="member-name">{profile?.display_name ?? '—'}</div>
+                        <div className="member-name">
+                          {profile?.display_name || ownedBanlist.name || sst('youOwner').split(' · ')[0]}
+                        </div>
                         <div className="member-role muted">{sst('youOwner')}</div>
                       </div>
                     </div>
