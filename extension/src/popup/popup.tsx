@@ -36,7 +36,9 @@ import {
   t,
 } from '../shared/i18n';
 
-type Tab = 'banlist' | 'export' | 'settings';
+type Tab = 'banlist' | 'share' | 'export' | 'settings';
+
+type ShareRole = 'viewer' | 'editor';
 
 interface ConfirmRequest {
   title: string;
@@ -48,6 +50,235 @@ interface ConfirmRequest {
 interface Profile {
   display_name: string;
   discord_id: string;
+}
+
+interface MemberRow {
+  user_id: string;
+  role: ShareRole;
+  display_name: string;
+  discord_id: string;
+  /** Where this membership lives — for "leave" actions on shared lists. */
+  banlist_id: string;
+  banlist_name: string;
+  /** True when this row represents access to a banlist the current user owns. */
+  is_in_owned_banlist: boolean;
+}
+
+interface InviteLinkRow {
+  id: string;
+  token: string;
+  role: ShareRole;
+  used_count: number;
+  max_uses: number | null;
+  expires_at: string | null;
+}
+
+interface OwnedBanlistRow {
+  id: string;
+  name: string;
+}
+
+// Strings used only by the Share tab — kept local to avoid bloating the
+// shared i18n module for a section that's still iterating. Falls back to
+// English if a language is missing a key.
+const SHARE_STRINGS: Record<Language, Record<string, string>> = {
+  en: {
+    title: 'Share',
+    yourMembers: 'Members of your banlist',
+    youOwner: 'you · owner',
+    role: 'Role',
+    remove: 'Remove',
+    leave: 'Leave',
+    generate: 'Generate invite link',
+    activeLinks: 'Active invite links',
+    copy: 'Copy',
+    copied: 'Copied!',
+    revoke: 'Revoke',
+    uses: 'used {n} time(s)',
+    accept: 'Accept an invitation',
+    tokenPlaceholder: 'Paste invite token...',
+    join: 'Join',
+    joined: 'Joined "{name}"',
+    invalidToken: 'Invalid invite token',
+    noMembers: 'Just you for now. Generate an invite link to share.',
+    noLinks: 'No active invite links.',
+    sharedWithYou: 'Banlists shared with you',
+    noSharedWithYou: 'None yet.',
+    revoked: 'Invite revoked',
+    removed: 'Member removed',
+    left: 'Left "{name}"',
+  },
+  fr: {
+    title: 'Partage',
+    yourMembers: 'Membres de ta banlist',
+    youOwner: 'toi · propriétaire',
+    role: 'Rôle',
+    remove: 'Retirer',
+    leave: 'Quitter',
+    generate: 'Générer un lien d\'invitation',
+    activeLinks: 'Liens d\'invitation actifs',
+    copy: 'Copier',
+    copied: 'Copié !',
+    revoke: 'Révoquer',
+    uses: 'utilisé {n} fois',
+    accept: 'Accepter une invitation',
+    tokenPlaceholder: 'Coller le token d\'invitation...',
+    join: 'Rejoindre',
+    joined: 'A rejoint « {name} »',
+    invalidToken: 'Token d\'invitation invalide',
+    noMembers: 'Personne d\'autre pour l\'instant. Génère un lien pour partager.',
+    noLinks: 'Aucun lien d\'invitation actif.',
+    sharedWithYou: 'Banlists partagées avec toi',
+    noSharedWithYou: 'Aucune pour l\'instant.',
+    revoked: 'Invitation révoquée',
+    removed: 'Membre retiré',
+    left: 'A quitté « {name} »',
+  },
+  'pt-BR': {
+    title: 'Compartilhar',
+    yourMembers: 'Membros da sua banlist',
+    youOwner: 'você · proprietário',
+    role: 'Função',
+    remove: 'Remover',
+    leave: 'Sair',
+    generate: 'Gerar link de convite',
+    activeLinks: 'Links de convite ativos',
+    copy: 'Copiar',
+    copied: 'Copiado!',
+    revoke: 'Revogar',
+    uses: 'usado {n} vez(es)',
+    accept: 'Aceitar um convite',
+    tokenPlaceholder: 'Cole o token de convite...',
+    join: 'Entrar',
+    joined: 'Entrou em "{name}"',
+    invalidToken: 'Token de convite inválido',
+    noMembers: 'Apenas você por enquanto. Gere um link para compartilhar.',
+    noLinks: 'Nenhum link de convite ativo.',
+    sharedWithYou: 'Banlists compartilhadas com você',
+    noSharedWithYou: 'Nenhuma ainda.',
+    revoked: 'Convite revogado',
+    removed: 'Membro removido',
+    left: 'Saiu de "{name}"',
+  },
+  ru: {
+    title: 'Поделиться',
+    yourMembers: 'Участники твоей банлисты',
+    youOwner: 'ты · владелец',
+    role: 'Роль',
+    remove: 'Удалить',
+    leave: 'Покинуть',
+    generate: 'Создать ссылку-приглашение',
+    activeLinks: 'Активные приглашения',
+    copy: 'Копировать',
+    copied: 'Скопировано!',
+    revoke: 'Отозвать',
+    uses: 'использовано {n} раз',
+    accept: 'Принять приглашение',
+    tokenPlaceholder: 'Вставь токен приглашения...',
+    join: 'Присоединиться',
+    joined: 'Присоединился к «{name}»',
+    invalidToken: 'Неверный токен',
+    noMembers: 'Пока только ты. Создай ссылку, чтобы поделиться.',
+    noLinks: 'Активных приглашений нет.',
+    sharedWithYou: 'Доступные тебе банлисты',
+    noSharedWithYou: 'Пока никаких.',
+    revoked: 'Приглашение отозвано',
+    removed: 'Участник удалён',
+    left: 'Покинул «{name}»',
+  },
+  tr: {
+    title: 'Paylaş',
+    yourMembers: 'Banlistinin üyeleri',
+    youOwner: 'sen · sahibi',
+    role: 'Rol',
+    remove: 'Çıkar',
+    leave: 'Ayrıl',
+    generate: 'Davet bağlantısı oluştur',
+    activeLinks: 'Aktif davet bağlantıları',
+    copy: 'Kopyala',
+    copied: 'Kopyalandı!',
+    revoke: 'İptal et',
+    uses: '{n} kez kullanıldı',
+    accept: 'Bir davet kabul et',
+    tokenPlaceholder: 'Davet tokenini yapıştır...',
+    join: 'Katıl',
+    joined: '"{name}" listesine katıldın',
+    invalidToken: 'Geçersiz davet tokeni',
+    noMembers: 'Şimdilik sadece sensin. Bir bağlantı oluştur ve paylaş.',
+    noLinks: 'Aktif davet bağlantısı yok.',
+    sharedWithYou: 'Seninle paylaşılan banlistler',
+    noSharedWithYou: 'Henüz yok.',
+    revoked: 'Davet iptal edildi',
+    removed: 'Üye çıkarıldı',
+    left: '"{name}" listesinden ayrıldın',
+  },
+  es: {
+    title: 'Compartir',
+    yourMembers: 'Miembros de tu banlist',
+    youOwner: 'tú · propietario',
+    role: 'Rol',
+    remove: 'Eliminar',
+    leave: 'Salir',
+    generate: 'Generar enlace de invitación',
+    activeLinks: 'Enlaces de invitación activos',
+    copy: 'Copiar',
+    copied: '¡Copiado!',
+    revoke: 'Revocar',
+    uses: 'usado {n} vez/es',
+    accept: 'Aceptar una invitación',
+    tokenPlaceholder: 'Pega el token de invitación...',
+    join: 'Unirse',
+    joined: 'Te uniste a "{name}"',
+    invalidToken: 'Token de invitación inválido',
+    noMembers: 'Solo tú por ahora. Genera un enlace para compartir.',
+    noLinks: 'Sin enlaces de invitación activos.',
+    sharedWithYou: 'Banlists compartidas contigo',
+    noSharedWithYou: 'Ninguna todavía.',
+    revoked: 'Invitación revocada',
+    removed: 'Miembro eliminado',
+    left: 'Saliste de "{name}"',
+  },
+  de: {
+    title: 'Teilen',
+    yourMembers: 'Mitglieder deiner Banlist',
+    youOwner: 'du · Besitzer',
+    role: 'Rolle',
+    remove: 'Entfernen',
+    leave: 'Verlassen',
+    generate: 'Einladungslink erstellen',
+    activeLinks: 'Aktive Einladungen',
+    copy: 'Kopieren',
+    copied: 'Kopiert!',
+    revoke: 'Widerrufen',
+    uses: '{n} Mal verwendet',
+    accept: 'Einladung annehmen',
+    tokenPlaceholder: 'Einladungstoken einfügen...',
+    join: 'Beitreten',
+    joined: '"{name}" beigetreten',
+    invalidToken: 'Ungültiger Einladungstoken',
+    noMembers: 'Nur du bisher. Erstelle einen Link zum Teilen.',
+    noLinks: 'Keine aktiven Einladungen.',
+    sharedWithYou: 'Mit dir geteilte Banlists',
+    noSharedWithYou: 'Noch keine.',
+    revoked: 'Einladung widerrufen',
+    removed: 'Mitglied entfernt',
+    left: '"{name}" verlassen',
+  },
+};
+
+function shareT(lang: Language, key: string, vars?: Record<string, string | number>): string {
+  let str = SHARE_STRINGS[lang]?.[key] ?? SHARE_STRINGS.en[key] ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v));
+    }
+  }
+  return str;
+}
+
+function randomToken(): string {
+  // 32 hex chars, url-safe. crypto.randomUUID is available in MV3.
+  return crypto.randomUUID().replace(/-/g, '');
 }
 
 const Icon = {
@@ -115,6 +346,28 @@ const Icon = {
       <polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   ),
+  Users: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  Copy: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  ),
+  X: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
+      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  ),
   GitHub: () => (
     <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
       <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55v-1.92c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.24 3.35.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.17a10.9 10.9 0 0 1 5.75 0c2.2-1.48 3.16-1.17 3.16-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
@@ -161,6 +414,17 @@ const PopupApp: React.FC = () => {
     language: DEFAULT_LANGUAGE,
   });
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
+
+  // Share tab state
+  const [members, setMembers] = useState<MemberRow[]>([]);
+  const [invites, setInvites] = useState<InviteLinkRow[]>([]);
+  const [ownedBanlist, setOwnedBanlist] = useState<OwnedBanlistRow | null>(null);
+  const [inviteRole, setInviteRole] = useState<ShareRole>('viewer');
+  const [acceptTokenInput, setAcceptTokenInput] = useState('');
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+
+  const sst = (key: string, vars?: Record<string, string | number>) =>
+    shareT(settings.language, key, vars);
 
   const tr = (key: StringKey, vars?: Record<string, string | number>) =>
     t(key, settings.language, vars);
@@ -254,6 +518,224 @@ const PopupApp: React.FC = () => {
       setError(`Failed to load banlist: ${err instanceof Error ? err.message : err}`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // ─── Share data loaders ───
+
+  /**
+   * Pulls everything the Share tab needs: the user's owned banlist, the
+   * members of that banlist (with their Discord display names via a
+   * profiles join), every banlist the user is a member of (for "leave"
+   * actions), and active invite links the user has generated.
+   *
+   * The RLS policies for these tables filter to {own banlists} ∪ {banlists
+   * I'm a member of}, so the join naturally only returns what the current
+   * user is allowed to see.
+   */
+  async function loadShareData() {
+    const { data: userData } = await supabase.auth.getUser();
+    const myId = userData?.user?.id;
+    if (!myId) return;
+
+    const { data: owned } = await supabase
+      .from('banlists')
+      .select('id, name')
+      .eq('owner_id', myId)
+      .maybeSingle();
+    setOwnedBanlist(owned ?? null);
+
+    // Step 1: members of MY banlist + banlists shared WITH me, raw.
+    // We collect user IDs and banlist IDs we need profiles for, then fetch
+    // them in a single second query. PostgREST embeds don't follow the
+    // banlist_members → auth.users → profiles indirection automatically.
+    const memberRows: MemberRow[] = [];
+    const idsToResolve = new Set<string>();
+
+    if (owned) {
+      const { data: ownedMembers } = await supabase
+        .from('banlist_members')
+        .select('user_id, role')
+        .eq('banlist_id', owned.id);
+      for (const m of ownedMembers ?? []) {
+        idsToResolve.add(m.user_id);
+        memberRows.push({
+          user_id: m.user_id,
+          role: m.role as ShareRole,
+          display_name: '—', // filled in step 2
+          discord_id: '',
+          banlist_id: owned.id,
+          banlist_name: owned.name,
+          is_in_owned_banlist: true,
+        });
+      }
+    }
+
+    const { data: sharedWithMe } = await supabase
+      .from('banlist_members')
+      .select('role, banlist:banlists(id, name, owner_id)')
+      .eq('user_id', myId);
+    for (const row of sharedWithMe ?? []) {
+      const bl = (row as { banlist?: { id: string; name: string; owner_id: string } | null }).banlist;
+      if (!bl) continue;
+      idsToResolve.add(bl.owner_id);
+      memberRows.push({
+        user_id: bl.owner_id,
+        role: row.role as ShareRole,
+        display_name: '—',
+        discord_id: '',
+        banlist_id: bl.id,
+        banlist_name: bl.name,
+        is_in_owned_banlist: false,
+      });
+    }
+
+    // Step 2: resolve all user_ids → profile in one query. RLS lets the
+    // current user see profiles of anyone in their banlist family.
+    if (idsToResolve.size > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name, discord_id')
+        .in('id', Array.from(idsToResolve));
+      const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+      for (const row of memberRows) {
+        const p = byId.get(row.user_id);
+        if (p) {
+          row.display_name = p.display_name;
+          row.discord_id = p.discord_id;
+        }
+      }
+    }
+    setMembers(memberRows);
+
+    // Active invite links I've created (only the shareable kind for now —
+    // invitee_discord_id IS NULL — direct invites aren't shown in v1).
+    if (owned) {
+      const { data: myInvites } = await supabase
+        .from('banlist_invites')
+        .select('id, token, role, used_count, max_uses, expires_at')
+        .eq('banlist_id', owned.id)
+        .is('invitee_discord_id', null)
+        .order('created_at', { ascending: false });
+      setInvites((myInvites ?? []) as InviteLinkRow[]);
+    }
+  }
+
+  // ─── Share actions ───
+
+  async function generateInviteLink() {
+    if (!ownedBanlist) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const myId = userData?.user?.id;
+    if (!myId) return;
+
+    const token = randomToken();
+    const { error: insertErr } = await supabase
+      .from('banlist_invites')
+      .insert({
+        banlist_id: ownedBanlist.id,
+        token,
+        role: inviteRole,
+        created_by: myId,
+      });
+    if (insertErr) {
+      setError(insertErr.message);
+      return;
+    }
+    await loadShareData();
+    setSuccess(sst('copied'));
+  }
+
+  async function revokeInvite(id: string) {
+    const { error: deleteErr } = await supabase
+      .from('banlist_invites')
+      .delete()
+      .eq('id', id);
+    if (deleteErr) {
+      setError(deleteErr.message);
+      return;
+    }
+    await loadShareData();
+    setSuccess(sst('revoked'));
+  }
+
+  async function removeMemberFromOwned(member: MemberRow) {
+    const ok = await askConfirm(
+      sst('remove'),
+      `${member.display_name}?`
+    );
+    if (!ok) return;
+    const { error: deleteErr } = await supabase
+      .from('banlist_members')
+      .delete()
+      .eq('banlist_id', member.banlist_id)
+      .eq('user_id', member.user_id);
+    if (deleteErr) {
+      setError(deleteErr.message);
+      return;
+    }
+    await loadShareData();
+    await loadBanlist();
+    notifyTabsBanlistChanged();
+    setSuccess(sst('removed'));
+  }
+
+  async function leaveSharedBanlist(member: MemberRow) {
+    const ok = await askConfirm(
+      sst('leave'),
+      `"${member.banlist_name}"?`
+    );
+    if (!ok) return;
+    const { data: userData } = await supabase.auth.getUser();
+    const myId = userData?.user?.id;
+    if (!myId) return;
+    const { error: deleteErr } = await supabase
+      .from('banlist_members')
+      .delete()
+      .eq('banlist_id', member.banlist_id)
+      .eq('user_id', myId);
+    if (deleteErr) {
+      setError(deleteErr.message);
+      return;
+    }
+    await loadShareData();
+    await loadBanlist();
+    notifyTabsBanlistChanged();
+    setSuccess(sst('left', { name: member.banlist_name }));
+  }
+
+  async function handleAcceptInvite() {
+    const token = acceptTokenInput.trim();
+    if (!token) return;
+    try {
+      const { data, error: rpcErr } = await supabase.rpc('accept_invite', {
+        p_token: token,
+      });
+      if (rpcErr) throw rpcErr;
+      const banlist = data as { name?: string } | null;
+      setSuccess(sst('joined', { name: banlist?.name ?? '' }));
+      setAcceptTokenInput('');
+      await loadShareData();
+      await loadBanlist();
+      notifyTabsBanlistChanged();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      // Postgres custom error codes from accept_invite — surface a friendlier label.
+      if (msg.includes('Invalid invite') || msg.includes('P0001')) {
+        setError(sst('invalidToken'));
+      } else {
+        setError(msg);
+      }
+    }
+  }
+
+  async function copyTokenToClipboard(token: string) {
+    try {
+      await navigator.clipboard.writeText(token);
+      setCopiedToken(token);
+      setTimeout(() => setCopiedToken((current) => (current === token ? null : current)), 1500);
+    } catch (err) {
+      setError(`Copy failed: ${err}`);
     }
   }
 
@@ -465,6 +947,15 @@ const PopupApp: React.FC = () => {
             <Icon.List /> <span>{tr('nav.banlist')}</span>
           </button>
           <button
+            className={`nav-item ${tab === 'share' ? 'is-active' : ''}`}
+            onClick={() => {
+              setTab('share');
+              void loadShareData();
+            }}
+          >
+            <Icon.Users /> <span>{sst('title')}</span>
+          </button>
+          <button
             className={`nav-item ${tab === 'export' ? 'is-active' : ''}`}
             onClick={() => setTab('export')}
           >
@@ -595,6 +1086,160 @@ const PopupApp: React.FC = () => {
                   {tr('addBan.submit')}
                 </button>
               </form>
+            </div>
+          </section>
+        )}
+
+        {tab === 'share' && (
+          <section className="page">
+            <h2 className="page-title">{sst('title')}</h2>
+
+            {/* Members of MY banlist (owner view) */}
+            {ownedBanlist && (
+              <>
+                <h3 className="section-title">{sst('yourMembers')}</h3>
+                <div className="member-list">
+                  <div className="member-card">
+                    <div
+                      className="avatar avatar-sm"
+                      style={{ background: avatarColor(profile?.display_name ?? 'you') }}
+                    >
+                      {(profile?.display_name ?? 'U').charAt(0).toUpperCase()}
+                    </div>
+                    <div className="member-meta">
+                      <div className="member-name">{profile?.display_name ?? '—'}</div>
+                      <div className="member-role muted">{sst('youOwner')}</div>
+                    </div>
+                  </div>
+                  {members
+                    .filter((m) => m.is_in_owned_banlist)
+                    .map((m) => (
+                      <div key={`own-${m.user_id}`} className="member-card">
+                        <div className="avatar avatar-sm" style={{ background: avatarColor(m.display_name) }}>
+                          {m.display_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="member-meta">
+                          <div className="member-name">{m.display_name}</div>
+                          <div className="member-role muted">{m.role}</div>
+                        </div>
+                        <button
+                          type="button"
+                          className="icon-btn"
+                          title={sst('remove')}
+                          onClick={() => removeMemberFromOwned(m)}
+                        >
+                          <Icon.X />
+                        </button>
+                      </div>
+                    ))}
+                  {members.filter((m) => m.is_in_owned_banlist).length === 0 && (
+                    <div className="empty empty-sm">{sst('noMembers')}</div>
+                  )}
+                </div>
+
+                {/* Generate an invite link */}
+                <h3 className="section-title">{sst('generate')}</h3>
+                <div className="form form-inline">
+                  <select
+                    className="input"
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value as ShareRole)}
+                  >
+                    <option value="viewer">viewer</option>
+                    <option value="editor">editor</option>
+                  </select>
+                  <button type="button" className="btn btn-primary" onClick={generateInviteLink}>
+                    {sst('generate')}
+                  </button>
+                </div>
+
+                {/* Active invite links */}
+                {invites.length > 0 && (
+                  <>
+                    <h3 className="section-title">{sst('activeLinks')}</h3>
+                    <div className="invite-list">
+                      {invites.map((inv) => (
+                        <div key={inv.id} className="invite-card">
+                          <div className="invite-meta">
+                            <code className="invite-token">{inv.token}</code>
+                            <div className="invite-sub muted">
+                              {inv.role} · {sst('uses', { n: inv.used_count })}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title={copiedToken === inv.token ? sst('copied') : sst('copy')}
+                            onClick={() => copyTokenToClipboard(inv.token)}
+                          >
+                            <Icon.Copy />
+                          </button>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title={sst('revoke')}
+                            onClick={() => revokeInvite(inv.id)}
+                          >
+                            <Icon.X />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            {/* Banlists shared with me */}
+            <h3 className="section-title">{sst('sharedWithYou')}</h3>
+            <div className="member-list">
+              {members.filter((m) => !m.is_in_owned_banlist).length === 0 ? (
+                <div className="empty empty-sm">{sst('noSharedWithYou')}</div>
+              ) : (
+                members
+                  .filter((m) => !m.is_in_owned_banlist)
+                  .map((m) => (
+                    <div key={`shared-${m.banlist_id}`} className="member-card">
+                      <div className="avatar avatar-sm" style={{ background: avatarColor(m.banlist_name) }}>
+                        {m.banlist_name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="member-meta">
+                        <div className="member-name">{m.banlist_name}</div>
+                        <div className="member-role muted">
+                          {sst('youOwner').split(' · ')[0]} · {m.role} · {m.display_name}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        title={sst('leave')}
+                        onClick={() => leaveSharedBanlist(m)}
+                      >
+                        <Icon.LogOut />
+                      </button>
+                    </div>
+                  ))
+              )}
+            </div>
+
+            {/* Accept an invitation by pasting a token */}
+            <h3 className="section-title">{sst('accept')}</h3>
+            <div className="form form-inline">
+              <input
+                type="text"
+                className="input"
+                placeholder={sst('tokenPlaceholder')}
+                value={acceptTokenInput}
+                onChange={(e) => setAcceptTokenInput(e.target.value)}
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!acceptTokenInput.trim()}
+                onClick={handleAcceptInvite}
+              >
+                {sst('join')}
+              </button>
             </div>
           </section>
         )}
