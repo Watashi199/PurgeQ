@@ -205,6 +205,10 @@ export type Database = {
           skipped: number
         }[]
       }
+      delete_my_account: {
+        Args: Record<string, never>
+        Returns: undefined
+      }
     }
     Enums: {
       banlist_role: "viewer" | "editor"

@@ -502,6 +502,57 @@ body {
   filter: none;
 }
 
+.btn-danger {
+  background: rgba(220, 38, 38, 0.08);
+  color: #fca5a5;
+  border-color: rgba(220, 38, 38, 0.4);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.16);
+  border-color: #ef4444;
+  color: #fecaca;
+  filter: none;
+}
+
+/* ───── Account / GDPR section in Settings ───── */
+
+.settings-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 18px 0;
+}
+
+.settings-account {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.account-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.settings-gdpr {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-gdpr-hint {
+  margin-top: -4px;
+  margin-bottom: 12px;
+}
+
+.settings-gdpr-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .btn-self-start {
   align-self: flex-start;
   padding: 8px 12px;

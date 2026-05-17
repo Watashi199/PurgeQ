@@ -898,6 +898,101 @@ const PopupApp: React.FC = () => {
     });
   }
 
+  // ─── GDPR ───
+
+  /**
+   * Bundle every piece of personal data the user can read into a single
+   * downloadable JSON. RLS already filters each query to {own data} ∪
+   * {family banlist data}, so nothing leaks beyond what the user could
+   * see via the regular UI.
+   */
+  async function handleExportAccount() {
+    try {
+      setLoading(true);
+      setError('');
+      const [
+        { data: profileRow },
+        { data: ownedBanlists },
+        { data: bansRows },
+        { data: memberships },
+        { data: createdInvites },
+      ] = await Promise.all([
+        supabase.from('profiles').select('*').maybeSingle(),
+        supabase.from('banlists').select('*'),
+        supabase
+          .from('bans')
+          .select('*, banlist:banlists(id, name, owner_id)'),
+        supabase.from('banlist_members').select('*'),
+        supabase.from('banlist_invites').select('*'),
+      ]);
+
+      const payload = {
+        exported_at: new Date().toISOString(),
+        source: 'PurgeQ',
+        profile: profileRow ?? null,
+        banlists: ownedBanlists ?? [],
+        bans: bansRows ?? [],
+        memberships: memberships ?? [],
+        invites_created: createdInvites ?? [],
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `purgeq-account-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      setSuccess('Account export downloaded');
+    } catch (err) {
+      setError(`Export failed: ${errorMessage(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /**
+   * Right-to-erasure: confirms once, calls delete_my_account RPC, signs
+   * the user out and resets every popup state. The RPC's cascade removes
+   * profile, banlist, member rows, invites and bans authored by the user.
+   */
+  async function handleDeleteAccount() {
+    const ok = await askConfirm(
+      'Delete your account?',
+      'This permanently removes your account, your banlist, every ban you added and every membership / invite. This cannot be undone.',
+      'Delete forever'
+    );
+    if (!ok) return;
+    try {
+      setLoading(true);
+      const { error: rpcErr } = await supabase.rpc('delete_my_account');
+      if (rpcErr) throw rpcErr;
+      // Defensive: if for some reason the user is still authed locally
+      // (token cached), force a sign-out so the auth gate kicks in.
+      try { await signOut(); } catch { /* ignore */ }
+      chrome.runtime.sendMessage({ type: 'AUTH_CHANGED' }, () => {
+        void chrome.runtime.lastError;
+      });
+      // Wipe popup state so the auth splash renders cleanly.
+      setSession(null);
+      setProfile(null);
+      setBanlist([]);
+      setMembers([]);
+      setInvites([]);
+      setOwnedBanlist(null);
+      setSuccess('Account deleted');
+    } catch (err) {
+      setError(`Delete failed: ${errorMessage(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // ─── Import ───
 
   /**
@@ -1577,6 +1672,34 @@ const PopupApp: React.FC = () => {
               <button type="button" className="btn btn-ghost" onClick={handleSignOut}>
                 <Icon.LogOut /> <span>Sign out</span>
               </button>
+            </div>
+
+            <div className="settings-divider" />
+
+            <div className="settings-gdpr">
+              <h3 className="section-title section-title-tight">Your data</h3>
+              <p className="page-hint settings-gdpr-hint">
+                Export everything we have about you, or delete your account
+                permanently. Required by GDPR — no questions asked.
+              </p>
+              <div className="settings-gdpr-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={handleExportAccount}
+                  disabled={loading}
+                >
+                  <Icon.Download /> <span>Export my data</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleDeleteAccount}
+                  disabled={loading}
+                >
+                  <Icon.Trash /> <span>Delete account</span>
+                </button>
+              </div>
             </div>
           </section>
         )}
