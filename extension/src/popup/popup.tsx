@@ -382,7 +382,7 @@ const Icon = {
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </svg>
   ),
-  X: () => (
+  Close: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round" width="14" height="14">
       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -391,6 +391,16 @@ const Icon = {
   GitHub: () => (
     <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
       <path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.1.79-.25.79-.55v-1.92c-3.2.7-3.87-1.54-3.87-1.54-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.75 2.69 1.24 3.35.95.1-.74.4-1.24.72-1.53-2.55-.29-5.24-1.27-5.24-5.66 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.17a10.9 10.9 0 0 1 5.75 0c2.2-1.48 3.16-1.17 3.16-1.17.62 1.58.23 2.75.11 3.04.74.8 1.18 1.82 1.18 3.07 0 4.4-2.69 5.36-5.25 5.65.41.36.78 1.06.78 2.13v3.16c0 .31.21.66.79.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5Z"/>
+    </svg>
+  ),
+  Star: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18" aria-hidden="true">
+      <path d="m12 2.5 3.09 6.26 6.91 1-5 4.87 1.18 6.87L12 18.27l-6.18 3.23L7 14.63l-5-4.87 6.91-1L12 2.5Z"/>
+    </svg>
+  ),
+  X: () => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16" aria-hidden="true">
+      <path d="M18.244 2H21l-6.522 7.452L22 22h-6.828l-4.77-6.234L4.8 22H2l7.07-8.078L2 2h6.914l4.302 5.69L18.244 2Zm-1.197 18h1.62L7.04 3.93H5.3l11.747 16.07Z"/>
     </svg>
   ),
 };
@@ -1006,15 +1016,38 @@ const PopupApp: React.FC = () => {
           </button>
         </nav>
         <div className="sidebar-links">
-          <a href="https://github.com/Watashi199/PurgeQ" target="_blank" rel="noreferrer"
-            title="GitHub" className="sidebar-link">
+          <a
+            href="https://github.com/Watashi199/PurgeQ"
+            target="_blank"
+            rel="noreferrer"
+            title="GitHub repository"
+            className="sidebar-link"
+          >
             <Icon.GitHub />
+          </a>
+          <a
+            href="https://github.com/Watashi199/PurgeQ/stargazers"
+            target="_blank"
+            rel="noreferrer"
+            title="Star the repo"
+            className="sidebar-link sidebar-link-star"
+          >
+            <Icon.Star />
+          </a>
+          <a
+            href="https://x.com/Watashi_R6S"
+            target="_blank"
+            rel="noreferrer"
+            title="@Watashi_R6S on X"
+            className="sidebar-link"
+          >
+            <Icon.X />
           </a>
         </div>
         <div className="sidebar-footer">
           {profile && (
             <>
-              <div className="footer-label">Signed in</div>
+              <div className="footer-label">{tr('footer.signedIn')}</div>
               <div className="footer-value" title={profile.discord_id}>
                 {profile.display_name}
               </div>
@@ -1173,7 +1206,7 @@ const PopupApp: React.FC = () => {
                             title={sst('remove')}
                             onClick={() => removeMemberFromOwned(m)}
                           >
-                            <Icon.X />
+                            <Icon.Close />
                           </button>
                         </div>
                       ))}
@@ -1221,7 +1254,7 @@ const PopupApp: React.FC = () => {
                               title={sst('revoke')}
                               onClick={() => revokeInvite(inv.id)}
                             >
-                              <Icon.X />
+                              <Icon.Close />
                             </button>
                           </div>
                         ))}

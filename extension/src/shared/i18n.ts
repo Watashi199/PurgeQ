@@ -23,7 +23,7 @@ export const DEFAULT_LANGUAGE: Language = 'en';
 export type StringKey =
   // Sidebar
   | 'nav.banlist' | 'nav.import' | 'nav.export' | 'nav.settings'
-  | 'footer.server' | 'footer.banned'
+  | 'footer.server' | 'footer.banned' | 'footer.signedIn'
   // Banlist
   | 'banlist.title' | 'banlist.searchPlaceholder' | 'banlist.loading'
   | 'banlist.noResults' | 'banlist.empty'
@@ -63,6 +63,7 @@ const en: Dict = {
   'nav.settings': 'Settings',
   'footer.server': 'Server',
   'footer.banned': 'Banned',
+  'footer.signedIn': 'Signed in',
 
   'banlist.title': 'Banlist',
   'banlist.searchPlaceholder': 'Search by name or reason...',
@@ -131,6 +132,7 @@ const fr: Dict = {
   'nav.settings': 'Paramètres',
   'footer.server': 'Serveur',
   'footer.banned': 'Bannis',
+  'footer.signedIn': 'Connecté',
 
   'banlist.title': 'Banlist',
   'banlist.searchPlaceholder': 'Chercher par pseudo ou raison...',
@@ -199,6 +201,7 @@ const ptBR: Dict = {
   'nav.settings': 'Configurações',
   'footer.server': 'Servidor',
   'footer.banned': 'Banidos',
+  'footer.signedIn': 'Conectado',
 
   'banlist.title': 'Banlist',
   'banlist.searchPlaceholder': 'Buscar por nome ou motivo...',
@@ -267,6 +270,7 @@ const ru: Dict = {
   'nav.settings': 'Настройки',
   'footer.server': 'Сервер',
   'footer.banned': 'Забанено',
+  'footer.signedIn': 'Авторизован',
 
   'banlist.title': 'Бан-лист',
   'banlist.searchPlaceholder': 'Поиск по имени или причине...',
@@ -335,6 +339,7 @@ const tr: Dict = {
   'nav.settings': 'Ayarlar',
   'footer.server': 'Sunucu',
   'footer.banned': 'Yasaklı',
+  'footer.signedIn': 'Giriş yapıldı',
 
   'banlist.title': 'Banlist',
   'banlist.searchPlaceholder': 'İsim veya neden ile ara...',
@@ -403,6 +408,7 @@ const es: Dict = {
   'nav.settings': 'Ajustes',
   'footer.server': 'Servidor',
   'footer.banned': 'Baneados',
+  'footer.signedIn': 'Conectado',
 
   'banlist.title': 'Banlist',
   'banlist.searchPlaceholder': 'Buscar por nombre o motivo...',
@@ -471,6 +477,7 @@ const de: Dict = {
   'nav.settings': 'Einstellungen',
   'footer.server': 'Server',
   'footer.banned': 'Gebannt',
+  'footer.signedIn': 'Angemeldet',
 
   'banlist.title': 'Banlist',
   'banlist.searchPlaceholder': 'Nach Name oder Grund suchen...',
