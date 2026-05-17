@@ -515,15 +515,6 @@ body {
   filter: none;
 }
 
-/* Cloudflare Turnstile widget host on the auth splash. Centers the
-   iframe Turnstile injects without forcing its size — Cloudflare's
-   script picks the right dimensions per challenge type. */
-.turnstile-host {
-  display: flex;
-  justify-content: center;
-  min-height: 65px;
-  margin: 4px 0 6px;
-}
 
 /* ───── Account / GDPR section in Settings ───── */
 

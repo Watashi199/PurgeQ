@@ -43,6 +43,17 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 });
 
 /**
+ * Hosted auth page that bridges the Discord OAuth flow with Cloudflare
+ * Turnstile. Cloudflare won't let us render a Turnstile widget directly
+ * inside a `chrome-extension://...` origin, so this page (served from a
+ * real domain we own) does the captcha challenge for us and forwards the
+ * token to Supabase, which then handles the Discord round-trip.
+ *
+ * See auth-page/README.md for deployment + Cloudflare/Supabase config.
+ */
+const AUTH_PAGE_URL = 'https://auth.wsrv.xyz/';
+
+/**
  * Sign in with Discord via chrome.identity.launchWebAuthFlow.
  *
  * Must be called from the popup (or another UI context with user activation)
@@ -52,28 +63,14 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
  * The Supabase Auth → URL Configuration → Redirect URLs list must include
  * `https://<extension-id>.chromiumapp.org/*` for the callback to be accepted.
  * Get the redirect URL with chrome.identity.getRedirectURL().
- *
- * `captchaToken` is the value emitted by Cloudflare Turnstile's success
- * callback. Required when Supabase Auth has bot protection enabled — the
- * server validates the token against Cloudflare before issuing the OAuth URL.
  */
-export async function signInWithDiscord(captchaToken?: string): Promise<void> {
+export async function signInWithDiscord(): Promise<void> {
   const redirectTo = chrome.identity.getRedirectURL();
-
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'discord',
-    options: {
-      redirectTo,
-      skipBrowserRedirect: true,
-      ...(captchaToken ? { captchaToken } : {}),
-    },
-  });
-  if (error) throw error;
-  if (!data?.url) throw new Error('No OAuth URL returned from Supabase');
+  const authUrl = `${AUTH_PAGE_URL}?redirect_to=${encodeURIComponent(redirectTo)}`;
 
   const responseUrl = await new Promise<string>((resolve, reject) => {
     chrome.identity.launchWebAuthFlow(
-      { url: data.url, interactive: true },
+      { url: authUrl, interactive: true },
       (result) => {
         const lastError = chrome.runtime.lastError;
         if (lastError) {
