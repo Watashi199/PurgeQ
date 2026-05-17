@@ -198,6 +198,13 @@ export type Database = {
           updated_at: string
         }
       }
+      import_bans: {
+        Args: { p_rows: Json }
+        Returns: {
+          imported: number
+          skipped: number
+        }[]
+      }
     }
     Enums: {
       banlist_role: "viewer" | "editor"

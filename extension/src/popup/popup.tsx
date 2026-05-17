@@ -36,7 +36,7 @@ import {
   t,
 } from '../shared/i18n';
 
-type Tab = 'banlist' | 'share' | 'export' | 'settings';
+type Tab = 'banlist' | 'share' | 'import' | 'export' | 'settings';
 
 type ShareRole = 'viewer' | 'editor';
 
@@ -323,6 +323,13 @@ const Icon = {
       strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  ),
+  Upload: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" /><line x1="12" y1="3" x2="12" y2="15" />
     </svg>
   ),
   Settings: () => (
@@ -891,6 +898,137 @@ const PopupApp: React.FC = () => {
     });
   }
 
+  // ─── Import ───
+
+  /**
+   * Parse an uploaded JSON or CSV file into the shape import_bans expects:
+   * an array of { faceit_name, reason, author_name }. Accepts:
+   *
+   *   JSON
+   *     - ["nick1", "nick2"]                       — bare names
+   *     - [{faceit_name: "nick", reason?, author?}] — full objects
+   *     - {items: [...]}                            — round-trip from /export
+   *
+   *   CSV
+   *     - first row is the header, must include faceit_name. reason and
+   *       author are optional and fall back to "Imported" / user display_name.
+   *
+   * Returns null on parse failure (caller surfaces an error toast).
+   */
+  async function parseImportFile(file: File): Promise<{
+    rows: { faceit_name: string; reason: string; author_name: string }[];
+  } | null> {
+    const text = await file.text();
+    const defaultAuthor =
+      settings.defaultAuthor.trim() || profile?.display_name || 'User';
+    const defaultReason = 'Imported';
+
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+      if (lines.length === 0) return { rows: [] };
+      const header = lines[0].split(',').map((h) => h.trim().replace(/^"|"$/g, '').toLowerCase());
+      const idx = {
+        faceit_name: header.indexOf('faceit_name'),
+        reason: header.indexOf('reason'),
+        author: header.indexOf('author'),
+      };
+      if (idx.faceit_name < 0) {
+        setError('CSV must have a "faceit_name" column');
+        return null;
+      }
+      const rows: { faceit_name: string; reason: string; author_name: string }[] = [];
+      for (const line of lines.slice(1)) {
+        // Minimal CSV split — handles quoted fields with embedded commas/quotes
+        // ("\"\"\" escapes a single quote). Good enough for our own exported
+        // files and most spreadsheet output.
+        const cells: string[] = [];
+        let cell = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+          const ch = line[i];
+          if (inQuotes) {
+            if (ch === '"' && line[i + 1] === '"') { cell += '"'; i++; }
+            else if (ch === '"') { inQuotes = false; }
+            else { cell += ch; }
+          } else {
+            if (ch === ',') { cells.push(cell); cell = ''; }
+            else if (ch === '"' && cell === '') { inQuotes = true; }
+            else { cell += ch; }
+          }
+        }
+        cells.push(cell);
+        rows.push({
+          faceit_name: (cells[idx.faceit_name] || '').trim(),
+          reason: (idx.reason >= 0 ? cells[idx.reason] : '').trim() || defaultReason,
+          author_name: (idx.author >= 0 ? cells[idx.author] : '').trim() || defaultAuthor,
+        });
+      }
+      return { rows };
+    }
+
+    // JSON path
+    let parsed: unknown;
+    try { parsed = JSON.parse(text); }
+    catch { setError('Could not parse the JSON file'); return null; }
+
+    const items: unknown[] = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray((parsed as { items?: unknown }).items)
+        ? (parsed as { items: unknown[] }).items
+        : [];
+    if (items.length === 0 && !Array.isArray(parsed)) {
+      setError('JSON must be an array, or {items: [...]}');
+      return null;
+    }
+
+    const rows = items.map((item) => {
+      if (typeof item === 'string') {
+        return { faceit_name: item.trim(), reason: defaultReason, author_name: defaultAuthor };
+      }
+      const obj = item as Record<string, unknown>;
+      const name = String(obj.faceit_name ?? '').trim();
+      const reason = String(obj.reason ?? '').trim() || defaultReason;
+      const author = String(obj.author ?? obj.author_name ?? '').trim() || defaultAuthor;
+      return { faceit_name: name, reason, author_name: author };
+    });
+    return { rows };
+  }
+
+  async function handleImportFile(file: File) {
+    try {
+      setLoading(true);
+      setError('');
+      setSuccess('');
+      const parsed = await parseImportFile(file);
+      if (!parsed) return;
+      if (parsed.rows.length === 0) {
+        setError('File contains no rows');
+        return;
+      }
+
+      const { data, error: rpcErr } = await supabase.rpc('import_bans', {
+        p_rows: parsed.rows,
+      });
+      if (rpcErr) throw rpcErr;
+
+      // The RPC returns a single-row set: [{ imported, skipped }].
+      const summary = Array.isArray(data) ? data[0] : data;
+      const imported = Number(summary?.imported ?? 0);
+      const skipped = Number(summary?.skipped ?? 0);
+      const parts = [`${imported} imported`];
+      if (skipped > 0) parts.push(`${skipped} skipped`);
+      setSuccess(parts.join(', '));
+
+      await loadBanlist();
+      notifyTabsBanlistChanged();
+      setTab('banlist');
+    } catch (err) {
+      setError(`Import failed: ${errorMessage(err)}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   // ─── Export ───
   function handleExport(format: 'json' | 'csv') {
     if (banlist.length === 0) {
@@ -998,6 +1136,12 @@ const PopupApp: React.FC = () => {
             }}
           >
             <Icon.Users /> <span>{sst('title')}</span>
+          </button>
+          <button
+            className={`nav-item ${tab === 'import' ? 'is-active' : ''}`}
+            onClick={() => setTab('import')}
+          >
+            <Icon.Upload /> <span>{tr('nav.import')}</span>
           </button>
           <button
             className={`nav-item ${tab === 'export' ? 'is-active' : ''}`}
@@ -1319,6 +1463,31 @@ const PopupApp: React.FC = () => {
                 </button>
               </div>
             </div>
+          </section>
+        )}
+
+        {tab === 'import' && (
+          <section className="page">
+            <h2 className="page-title">{tr('import.title')}</h2>
+            <p className="page-hint">{tr('import.hint')}</p>
+
+            <label className="dropzone">
+              <Icon.Upload />
+              <div className="dropzone-title">{tr('import.dropzoneTitle')}</div>
+              <div className="dropzone-hint">{tr('import.dropzoneHint')}</div>
+              <input
+                type="file"
+                accept=".json,.csv,.txt"
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = '';
+                  if (file) void handleImportFile(file);
+                }}
+              />
+            </label>
+
+            <div className="hint-block">{tr('import.help')}</div>
           </section>
         )}
 
