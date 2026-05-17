@@ -276,6 +276,26 @@ function shareT(lang: Language, key: string, vars?: Record<string, string | numb
   return str;
 }
 
+/**
+ * Pull a human-readable message out of whatever was thrown / returned by
+ * supabase-js. PostgrestError and AuthError aren't Error instances, so
+ * `instanceof Error` misses them and `String(err)` yields "[object Object]".
+ */
+function errorMessage(err: unknown): string {
+  if (!err) return 'Unknown error';
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'object') {
+    const e = err as { message?: unknown; error_description?: unknown; details?: unknown; hint?: unknown };
+    if (typeof e.message === 'string' && e.message) return e.message;
+    if (typeof e.error_description === 'string' && e.error_description) return e.error_description;
+    if (typeof e.details === 'string' && e.details) return e.details;
+    if (typeof e.hint === 'string' && e.hint) return e.hint;
+    try { return JSON.stringify(err); } catch { /* fall through */ }
+  }
+  return String(err);
+}
+
 function randomToken(): string {
   // 32 hex chars, url-safe. crypto.randomUUID is available in MV3.
   return crypto.randomUUID().replace(/-/g, '');
@@ -515,7 +535,7 @@ const PopupApp: React.FC = () => {
       );
       setBanlist(items);
     } catch (err) {
-      setError(`Failed to load banlist: ${err instanceof Error ? err.message : err}`);
+      setError(`Failed to load banlist: ${errorMessage(err)}`);
     } finally {
       setLoading(false);
     }
@@ -719,9 +739,13 @@ const PopupApp: React.FC = () => {
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      // Postgres custom error codes from accept_invite — surface a friendlier label.
-      if (msg.includes('Invalid invite') || msg.includes('P0001')) {
+      const msg = errorMessage(err);
+      // The "Invalid invite token" case is the only one we localise specially;
+      // every other reason (expired, used up, not for you, already-owner) gets
+      // surfaced as-is since the RPC's English wording is already user-friendly.
+      // We deliberately don't catch on P0001 — it's the generic raise_exception
+      // code used by *all* of accept_invite's failure paths now.
+      if (msg.toLowerCase().startsWith('invalid invite')) {
         setError(sst('invalidToken'));
       } else {
         setError(msg);
@@ -753,7 +777,7 @@ const PopupApp: React.FC = () => {
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`Sign-in failed: ${err instanceof Error ? err.message : err}`);
+      setError(`Sign-in failed: ${errorMessage(err)}`);
     } finally {
       setAuthLoading(false);
     }
@@ -769,7 +793,7 @@ const PopupApp: React.FC = () => {
       });
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`Sign-out failed: ${err instanceof Error ? err.message : err}`);
+      setError(`Sign-out failed: ${errorMessage(err)}`);
     }
   }
 
@@ -793,7 +817,7 @@ const PopupApp: React.FC = () => {
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`${err instanceof Error ? err.message : err}`);
+      setError(`${errorMessage(err)}`);
     } finally {
       setLoading(false);
     }
@@ -811,7 +835,7 @@ const PopupApp: React.FC = () => {
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`${err instanceof Error ? err.message : err}`);
+      setError(`${errorMessage(err)}`);
     }
   }
 
@@ -821,7 +845,7 @@ const PopupApp: React.FC = () => {
       notifyTabsBanlistChanged();
       setSuccess(tr('notif.refreshed'));
     } catch (err) {
-      setError(`${err instanceof Error ? err.message : err}`);
+      setError(`${errorMessage(err)}`);
     }
   }
 
@@ -836,7 +860,7 @@ const PopupApp: React.FC = () => {
       setSuccess(tr('notif.settingsSaved'));
       setTab('banlist');
     } catch (err) {
-      setError(`${err instanceof Error ? err.message : err}`);
+      setError(`${errorMessage(err)}`);
     }
   }
 
