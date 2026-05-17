@@ -9,9 +9,39 @@
  * after a mutation so content scripts on FACEIT refresh instantly.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import type { Session } from '@supabase/supabase-js';
+
+// Cloudflare Turnstile site key (public — safe to ship in the bundle).
+// Configure the matching secret in Supabase: Authentication → Bot Protection.
+// The two test keys below pass / always fail; replace with the real key
+// before publishing to the stores.
+//   Always passes: 1x00000000000000000000AA
+//   Always fails:  2x00000000000000000000AB
+const TURNSTILE_SITE_KEY = '1x00000000000000000000AA';
+
+// Ambient declaration for the Turnstile global injected by the script tag
+// in popup.html. Kept here so the rest of the codebase isn't aware of it.
+declare global {
+  interface Window {
+    turnstile?: {
+      render: (
+        container: HTMLElement | string,
+        opts: {
+          sitekey: string;
+          callback?: (token: string) => void;
+          'expired-callback'?: () => void;
+          'error-callback'?: () => void;
+          theme?: 'light' | 'dark' | 'auto';
+          size?: 'normal' | 'compact';
+        }
+      ) => string;
+      remove: (widgetId: string) => void;
+      reset: (widgetId?: string) => void;
+    };
+  }
+}
 import {
   addBan as supabaseAddBan,
   refreshBanlistFromSupabase,
@@ -460,6 +490,13 @@ const PopupApp: React.FC = () => {
   const [acceptTokenInput, setAcceptTokenInput] = useState('');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
+  // Cloudflare Turnstile token captured while the user sits on the auth
+  // splash. Forwarded to signInWithDiscord so Supabase Auth can validate
+  // it against Cloudflare server-side before issuing the OAuth URL.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<HTMLDivElement | null>(null);
+  const turnstileWidgetId = useRef<string | null>(null);
+
   const sst = (key: string, vars?: Record<string, string | number>) =>
     shareT(settings.language, key, vars);
 
@@ -792,10 +829,14 @@ const PopupApp: React.FC = () => {
 
   // ─── Auth actions ───
   async function handleSignIn() {
+    if (!captchaToken) {
+      setError('Please complete the verification challenge first.');
+      return;
+    }
     setError('');
     try {
       setAuthLoading(true);
-      await signInWithDiscord();
+      await signInWithDiscord(captchaToken);
       // Tell the SW so it refreshes its cache.
       chrome.runtime.sendMessage({ type: 'AUTH_CHANGED' }, () => {
         void chrome.runtime.lastError;
@@ -805,10 +846,65 @@ const PopupApp: React.FC = () => {
       notifyTabsBanlistChanged();
     } catch (err) {
       setError(`Sign-in failed: ${errorMessage(err)}`);
+      // Turnstile tokens are single-use — reset the widget so the user
+      // can solve a fresh challenge before retrying.
+      if (turnstileWidgetId.current && window.turnstile) {
+        window.turnstile.reset(turnstileWidgetId.current);
+      }
+      setCaptchaToken(null);
     } finally {
       setAuthLoading(false);
     }
   }
+
+  /**
+   * Render the Turnstile widget once the auth splash is in the DOM. The
+   * Cloudflare script is loaded by popup.html; this effect just hooks the
+   * widget into our ref and forwards the success / expired callbacks into
+   * React state. Cleans up by removing the widget if the splash unmounts
+   * (e.g. user signs in successfully).
+   */
+  useEffect(() => {
+    if (authLoading || session) return; // splash isn't visible
+    if (!turnstileRef.current) return;
+
+    let cancelled = false;
+    let intervalId: number | undefined;
+
+    const attach = () => {
+      if (cancelled || !turnstileRef.current || !window.turnstile) return;
+      if (turnstileWidgetId.current) return; // already mounted
+      turnstileWidgetId.current = window.turnstile.render(turnstileRef.current, {
+        sitekey: TURNSTILE_SITE_KEY,
+        theme: 'dark',
+        callback: (token) => setCaptchaToken(token),
+        'expired-callback': () => setCaptchaToken(null),
+        'error-callback': () => setCaptchaToken(null),
+      });
+    };
+
+    if (window.turnstile) {
+      attach();
+    } else {
+      // The <script async defer> in popup.html may not have finished by
+      // the time React mounts. Poll briefly until the global appears.
+      intervalId = window.setInterval(() => {
+        if (window.turnstile) {
+          window.clearInterval(intervalId);
+          attach();
+        }
+      }, 100);
+    }
+
+    return () => {
+      cancelled = true;
+      if (intervalId) window.clearInterval(intervalId);
+      if (turnstileWidgetId.current && window.turnstile) {
+        window.turnstile.remove(turnstileWidgetId.current);
+        turnstileWidgetId.current = null;
+      }
+    };
+  }, [authLoading, session]);
 
   async function handleSignOut() {
     const ok = await askConfirm('Sign out', 'You will need to sign in again to see your banlist.');
@@ -1199,7 +1295,16 @@ const PopupApp: React.FC = () => {
             </div>
             <p className="page-hint">Sign in with Discord to access your banlist.</p>
             {error && <div className="alert alert-error">{error}</div>}
-            <button type="button" className="btn btn-primary" onClick={handleSignIn}>
+            {/* Turnstile widget mounts here once the Cloudflare script is
+                ready (see useEffect above). The Sign-in button stays
+                disabled until the user produces a token. */}
+            <div ref={turnstileRef} className="turnstile-host" />
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleSignIn}
+              disabled={!captchaToken}
+            >
               <Icon.Discord /> <span>Sign in with Discord</span>
             </button>
           </div>

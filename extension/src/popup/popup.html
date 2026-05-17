@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PurgeQ Banlist</title>
     <link rel="stylesheet" href="popup.css" />
+    <!-- Cloudflare Turnstile (bot protection on the Discord sign-in flow).
+         Manifest CSP allows scripts from challenges.cloudflare.com. -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body>
     <div id="root"></div>

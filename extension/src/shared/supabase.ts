@@ -52,8 +52,12 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
  * The Supabase Auth → URL Configuration → Redirect URLs list must include
  * `https://<extension-id>.chromiumapp.org/*` for the callback to be accepted.
  * Get the redirect URL with chrome.identity.getRedirectURL().
+ *
+ * `captchaToken` is the value emitted by Cloudflare Turnstile's success
+ * callback. Required when Supabase Auth has bot protection enabled — the
+ * server validates the token against Cloudflare before issuing the OAuth URL.
  */
-export async function signInWithDiscord(): Promise<void> {
+export async function signInWithDiscord(captchaToken?: string): Promise<void> {
   const redirectTo = chrome.identity.getRedirectURL();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -61,6 +65,7 @@ export async function signInWithDiscord(): Promise<void> {
     options: {
       redirectTo,
       skipBrowserRedirect: true,
+      ...(captchaToken ? { captchaToken } : {}),
     },
   });
   if (error) throw error;

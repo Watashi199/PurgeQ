@@ -41,5 +41,8 @@
       "resources": ["images/*"],
       "matches": ["<all_urls>"]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' https://challenges.cloudflare.com; object-src 'self';"
+  }
 }
