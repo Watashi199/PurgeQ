@@ -767,6 +767,31 @@ body {
 
 /* ───── Share tab ───── */
 
+/* Scrollable middle column — fills the height between the page title and
+   the pinned "Accept invitation" footer. */
+.share-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px; /* leave room for the scrollbar without crowding cards */
+  margin-right: -4px;
+}
+
+/* Pinned footer — always visible no matter how tall the lists above are. */
+.share-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 12px 0 14px;
+  margin-top: 4px;
+}
+
+/* Section headers between Share sections sit tighter than the first one
+   so the lists feel grouped rather than walled off. */
+.section-title-tight {
+  margin-top: 14px;
+  margin-bottom: 8px;
+}
+
 .avatar-sm {
   width: 32px;
   height: 32px;
@@ -782,7 +807,15 @@ body {
   display: flex;
   gap: 8px;
   align-items: stretch;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
+}
+
+.share-footer .form-inline {
+  margin-bottom: 0;
+}
+
+.share-generate {
+  margin-top: 10px;
 }
 
 .form-inline .input {
@@ -794,7 +827,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .member-card {
@@ -830,7 +863,22 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  margin-bottom: 18px;
+  margin-bottom: 10px;
+}
+
+/* Scrollbar styling for the share-scroll area, matching .banlist. */
+.share-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.share-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.share-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+.share-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--orange);
 }
 
 .invite-card {

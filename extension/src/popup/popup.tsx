@@ -1094,152 +1094,155 @@ const PopupApp: React.FC = () => {
           <section className="page">
             <h2 className="page-title">{sst('title')}</h2>
 
-            {/* Members of MY banlist (owner view) */}
-            {ownedBanlist && (
-              <>
-                <h3 className="section-title">{sst('yourMembers')}</h3>
-                <div className="member-list">
-                  <div className="member-card">
-                    <div
-                      className="avatar avatar-sm"
-                      style={{ background: avatarColor(profile?.display_name ?? 'you') }}
-                    >
-                      {(profile?.display_name ?? 'U').charAt(0).toUpperCase()}
-                    </div>
-                    <div className="member-meta">
-                      <div className="member-name">{profile?.display_name ?? '—'}</div>
-                      <div className="member-role muted">{sst('youOwner')}</div>
-                    </div>
-                  </div>
-                  {members
-                    .filter((m) => m.is_in_owned_banlist)
-                    .map((m) => (
-                      <div key={`own-${m.user_id}`} className="member-card">
-                        <div className="avatar avatar-sm" style={{ background: avatarColor(m.display_name) }}>
-                          {m.display_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="member-meta">
-                          <div className="member-name">{m.display_name}</div>
-                          <div className="member-role muted">{m.role}</div>
-                        </div>
-                        <button
-                          type="button"
-                          className="icon-btn"
-                          title={sst('remove')}
-                          onClick={() => removeMemberFromOwned(m)}
-                        >
-                          <Icon.X />
-                        </button>
+            {/* Scrollable area — fills the remaining height and overflows
+                independently of the pinned "Accept invitation" footer below. */}
+            <div className="share-scroll">
+              {/* Members of MY banlist (owner view) */}
+              {ownedBanlist && (
+                <>
+                  <h3 className="section-title">{sst('yourMembers')}</h3>
+                  <div className="member-list">
+                    <div className="member-card">
+                      <div
+                        className="avatar avatar-sm"
+                        style={{ background: avatarColor(profile?.display_name ?? 'you') }}
+                      >
+                        {(profile?.display_name ?? 'U').charAt(0).toUpperCase()}
                       </div>
-                    ))}
-                  {members.filter((m) => m.is_in_owned_banlist).length === 0 && (
-                    <div className="empty empty-sm">{sst('noMembers')}</div>
-                  )}
-                </div>
-
-                {/* Generate an invite link */}
-                <h3 className="section-title">{sst('generate')}</h3>
-                <div className="form form-inline">
-                  <select
-                    className="input"
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as ShareRole)}
-                  >
-                    <option value="viewer">viewer</option>
-                    <option value="editor">editor</option>
-                  </select>
-                  <button type="button" className="btn btn-primary" onClick={generateInviteLink}>
-                    {sst('generate')}
-                  </button>
-                </div>
-
-                {/* Active invite links */}
-                {invites.length > 0 && (
-                  <>
-                    <h3 className="section-title">{sst('activeLinks')}</h3>
-                    <div className="invite-list">
-                      {invites.map((inv) => (
-                        <div key={inv.id} className="invite-card">
-                          <div className="invite-meta">
-                            <code className="invite-token">{inv.token}</code>
-                            <div className="invite-sub muted">
-                              {inv.role} · {sst('uses', { n: inv.used_count })}
-                            </div>
+                      <div className="member-meta">
+                        <div className="member-name">{profile?.display_name ?? '—'}</div>
+                        <div className="member-role muted">{sst('youOwner')}</div>
+                      </div>
+                    </div>
+                    {members
+                      .filter((m) => m.is_in_owned_banlist)
+                      .map((m) => (
+                        <div key={`own-${m.user_id}`} className="member-card">
+                          <div className="avatar avatar-sm" style={{ background: avatarColor(m.display_name) }}>
+                            {m.display_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="member-meta">
+                            <div className="member-name">{m.display_name}</div>
+                            <div className="member-role muted">{m.role}</div>
                           </div>
                           <button
                             type="button"
                             className="icon-btn"
-                            title={copiedToken === inv.token ? sst('copied') : sst('copy')}
-                            onClick={() => copyTokenToClipboard(inv.token)}
-                          >
-                            <Icon.Copy />
-                          </button>
-                          <button
-                            type="button"
-                            className="icon-btn"
-                            title={sst('revoke')}
-                            onClick={() => revokeInvite(inv.id)}
+                            title={sst('remove')}
+                            onClick={() => removeMemberFromOwned(m)}
                           >
                             <Icon.X />
                           </button>
                         </div>
                       ))}
-                    </div>
-                  </>
-                )}
-              </>
-            )}
+                  </div>
 
-            {/* Banlists shared with me */}
-            <h3 className="section-title">{sst('sharedWithYou')}</h3>
-            <div className="member-list">
-              {members.filter((m) => !m.is_in_owned_banlist).length === 0 ? (
-                <div className="empty empty-sm">{sst('noSharedWithYou')}</div>
-              ) : (
-                members
-                  .filter((m) => !m.is_in_owned_banlist)
-                  .map((m) => (
-                    <div key={`shared-${m.banlist_id}`} className="member-card">
-                      <div className="avatar avatar-sm" style={{ background: avatarColor(m.banlist_name) }}>
-                        {m.banlist_name.charAt(0).toUpperCase()}
+                  {/* Generate an invite link — compact form, no separate heading */}
+                  <div className="form form-inline share-generate">
+                    <select
+                      className="input"
+                      value={inviteRole}
+                      onChange={(e) => setInviteRole(e.target.value as ShareRole)}
+                    >
+                      <option value="viewer">viewer</option>
+                      <option value="editor">editor</option>
+                    </select>
+                    <button type="button" className="btn btn-primary" onClick={generateInviteLink}>
+                      {sst('generate')}
+                    </button>
+                  </div>
+
+                  {/* Active invite links — only shown when at least one exists */}
+                  {invites.length > 0 && (
+                    <>
+                      <h3 className="section-title section-title-tight">{sst('activeLinks')}</h3>
+                      <div className="invite-list">
+                        {invites.map((inv) => (
+                          <div key={inv.id} className="invite-card">
+                            <div className="invite-meta">
+                              <code className="invite-token">{inv.token}</code>
+                              <div className="invite-sub muted">
+                                {inv.role} · {sst('uses', { n: inv.used_count })}
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              title={copiedToken === inv.token ? sst('copied') : sst('copy')}
+                              onClick={() => copyTokenToClipboard(inv.token)}
+                            >
+                              <Icon.Copy />
+                            </button>
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              title={sst('revoke')}
+                              onClick={() => revokeInvite(inv.id)}
+                            >
+                              <Icon.X />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                      <div className="member-meta">
-                        <div className="member-name">{m.banlist_name}</div>
-                        <div className="member-role muted">
-                          {sst('youOwner').split(' · ')[0]} · {m.role} · {m.display_name}
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* Banlists shared with me — only shown when non-empty to save space */}
+              {members.filter((m) => !m.is_in_owned_banlist).length > 0 && (
+                <>
+                  <h3 className="section-title section-title-tight">{sst('sharedWithYou')}</h3>
+                  <div className="member-list">
+                    {members
+                      .filter((m) => !m.is_in_owned_banlist)
+                      .map((m) => (
+                        <div key={`shared-${m.banlist_id}`} className="member-card">
+                          <div className="avatar avatar-sm" style={{ background: avatarColor(m.banlist_name) }}>
+                            {m.banlist_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="member-meta">
+                            <div className="member-name">{m.banlist_name}</div>
+                            <div className="member-role muted">
+                              {sst('youOwner').split(' · ')[0]} · {m.role} · {m.display_name}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            title={sst('leave')}
+                            onClick={() => leaveSharedBanlist(m)}
+                          >
+                            <Icon.LogOut />
+                          </button>
                         </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="icon-btn"
-                        title={sst('leave')}
-                        onClick={() => leaveSharedBanlist(m)}
-                      >
-                        <Icon.LogOut />
-                      </button>
-                    </div>
-                  ))
+                      ))}
+                  </div>
+                </>
               )}
             </div>
 
-            {/* Accept an invitation by pasting a token */}
-            <h3 className="section-title">{sst('accept')}</h3>
-            <div className="form form-inline">
-              <input
-                type="text"
-                className="input"
-                placeholder={sst('tokenPlaceholder')}
-                value={acceptTokenInput}
-                onChange={(e) => setAcceptTokenInput(e.target.value)}
-              />
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={!acceptTokenInput.trim()}
-                onClick={handleAcceptInvite}
-              >
-                {sst('join')}
-              </button>
+            {/* Pinned footer — Accept an invitation by pasting a token. Always
+                visible regardless of how much content is in the scroll area. */}
+            <div className="share-footer">
+              <h3 className="section-title section-title-tight">{sst('accept')}</h3>
+              <div className="form form-inline">
+                <input
+                  type="text"
+                  className="input"
+                  placeholder={sst('tokenPlaceholder')}
+                  value={acceptTokenInput}
+                  onChange={(e) => setAcceptTokenInput(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!acceptTokenInput.trim()}
+                  onClick={handleAcceptInvite}
+                >
+                  {sst('join')}
+                </button>
+              </div>
             </div>
           </section>
         )}
