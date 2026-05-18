@@ -49,9 +49,11 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
  * real domain we own) does the captcha challenge for us and forwards the
  * token to Supabase, which then handles the Discord round-trip.
  *
- * See auth-page/README.md for deployment + Cloudflare/Supabase config.
+ * Lives alongside the landing site at landing/auth/index.html, both
+ * deployed together via Cloudflare Pages. See landing/auth/README.md
+ * for the Cloudflare / Supabase configuration.
  */
-const AUTH_PAGE_URL = 'https://auth.wsrv.xyz/';
+const AUTH_PAGE_URL = 'https://purgeq.wsrv.xyz/auth/';
 
 /**
  * Sign in with Discord via chrome.identity.launchWebAuthFlow.
