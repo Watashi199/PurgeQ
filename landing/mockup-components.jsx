@@ -213,23 +213,21 @@ function PopupSettings() {
         <h2 style={{fontSize:19, fontWeight:700, marginBottom:14, color:'#f5f5f7'}}>Settings</h2>
 
         <div style={{flex:1, overflowY:'auto', paddingRight:4, display:'flex', flexDirection:'column', gap:14, paddingBottom:16, minHeight:0}}>
-          <label style={{display:'flex', flexDirection:'column', gap:6}}>
-            <FieldLabel>API server URL</FieldLabel>
-            <Input value="http://192.168.1.10:8000" placeholder="http://localhost:8000" />
-            <FieldHint>Where your PurgeQ server runs. Localhost for solo, LAN IP for teammates on the same network.</FieldHint>
-          </label>
-
-          <label style={{display:'flex', flexDirection:'column', gap:6}}>
-            <FieldLabel>API key</FieldLabel>
-            <Input type="password" value="••••••••••••••••••••••••" placeholder="X-API-Key" />
-            <FieldHint>The key you set in <code style={{background:'#0e0e10', border:'1px solid #25252a', borderRadius:3, padding:'1px 5px', fontSize:11.5, color:'#ff7a46', fontFamily:'"SF Mono", Consolas, monospace'}}>.env</code>. Hosted mode? Click <em>Get a key</em>.</FieldHint>
-            <button style={{alignSelf:'flex-start', padding:'8px 12px', background:'#1d1d21', border:'1px solid #25252a', color:'#f5f5f7', borderRadius:6, fontSize:12.5, fontWeight:500, cursor:'pointer', fontFamily:'inherit', marginTop:2}}>Get a key</button>
-          </label>
+          <div style={{display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'rgba(255,85,0,0.06)', border:'1px solid rgba(255,85,0,0.22)', borderRadius:6}}>
+            <div style={{width:32, height:32, borderRadius:'50%', background:'#5865f2', display:'inline-flex', alignItems:'center', justifyContent:'center'}}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white" aria-hidden="true"><path d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.07.07 0 0 0-.073.035c-.211.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.51 12.51 0 0 0-.617-1.249.077.077 0 0 0-.073-.035 19.736 19.736 0 0 0-4.885 1.515.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.095 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+            </div>
+            <div style={{flex:1, minWidth:0}}>
+              <div style={{fontSize:11.5, color:'#a3a3a8', textTransform:'uppercase', letterSpacing:0.4}}>Signed in</div>
+              <div style={{fontSize:13.5, fontWeight:600, color:'#f5f5f7'}}>Watashi</div>
+            </div>
+            <button style={{padding:'6px 10px', background:'#1d1d21', border:'1px solid #25252a', color:'#a3a3a8', borderRadius:5, fontSize:11.5, fontWeight:500, cursor:'pointer', fontFamily:'inherit'}}>Sign out</button>
+          </div>
 
           <label style={{display:'flex', flexDirection:'column', gap:6}}>
             <FieldLabel>Default author</FieldLabel>
             <Input value="Watashi" placeholder="Your name" />
-            <FieldHint>Stamped on every ban you create. 2–32 chars.</FieldHint>
+            <FieldHint>Stamped on every ban you create from a FACEIT card. Defaults to your Discord display name.</FieldHint>
           </label>
 
           <label style={{display:'flex', flexDirection:'column', gap:6}}>
@@ -251,7 +249,6 @@ function PopupSettings() {
 
         <div style={{display:'flex', justifyContent:'flex-end', gap:8, flexWrap:'wrap', paddingTop:4, paddingBottom:16, borderTop:'1px solid #25252a', marginTop:4}}>
           <button style={{padding:'9px 13px', background:'#1d1d21', border:'1px solid #25252a', color:'#f5f5f7', borderRadius:6, fontSize:13, fontWeight:500, cursor:'pointer'}}>Reset</button>
-          <button style={{padding:'9px 13px', background:'#1d1d21', border:'1px solid #25252a', color:'#f5f5f7', borderRadius:6, fontSize:13, fontWeight:500, cursor:'pointer'}}>Test connection</button>
           <button style={{padding:'9px 13px', background:'linear-gradient(135deg, #ff5500 0%, #cc3a00 100%)', border:0, color:'white', borderRadius:6, fontSize:13, fontWeight:600, cursor:'pointer', boxShadow:'0 4px 14px rgba(255,85,0,0.35)'}}>Save</button>
         </div>
       </section>

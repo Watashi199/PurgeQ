@@ -53,7 +53,7 @@
       </div>
       <div class="hero-meta">
         <span class="hero-meta-item" data-i18n="hero_meta_os">Chrome · Firefox · Edge · Brave</span>
-        <span class="hero-meta-item" data-i18n="hero_meta_license">MIT · Self-hosted · No accounts</span>
+        <span class="hero-meta-item" data-i18n="hero_meta_license">MIT · EU-hosted · Discord sign-in</span>
       </div>
     </div>
 
@@ -142,20 +142,20 @@
     <div class="step">
       <div class="step-corner">// STEP</div>
       <div class="step-num" data-i18n="how_step1_n">01</div>
-      <div class="step-title" data-i18n="how_step1_t">Run the server</div>
-      <div class="step-desc" data-i18n="how_step1_d">One docker compose up. Postgres + Redis + the API on your machine, NAS, or a $5 VPS. The installer generates your API key.</div>
+      <div class="step-title" data-i18n="how_step1_t">Install the extension</div>
+      <div class="step-desc" data-i18n="how_step1_d">Grab PurgeQ from the Chrome Web Store or addons.mozilla.org. No accounts to create, no server URLs to type — it&rsquo;s already wired to the hosted backend.</div>
     </div>
     <div class="step">
       <div class="step-corner">// STEP</div>
       <div class="step-num" data-i18n="how_step2_n">02</div>
-      <div class="step-title" data-i18n="how_step2_t">Load the extension</div>
-      <div class="step-desc" data-i18n="how_step2_d">Grab the latest zip from Releases, drop it into chrome://extensions, paste your server URL and API key. Done in 60 seconds.</div>
+      <div class="step-title" data-i18n="how_step2_t">Sign in with Discord</div>
+      <div class="step-desc" data-i18n="how_step2_d">Open the popup, click Sign in with Discord. One captcha, one OAuth roundtrip, and your personal banlist is ready. Takes about 15 seconds.</div>
     </div>
     <div class="step">
       <div class="step-corner">// STEP</div>
       <div class="step-num" data-i18n="how_step3_n">03</div>
       <div class="step-title" data-i18n="how_step3_t">Flag with one click</div>
-      <div class="step-desc" data-i18n="how_step3_d">Hover any player card on FACEIT, hit Ban, type a reason. They'll be highlighted in red on every page from then on — for you and anyone sharing your server.</div>
+      <div class="step-desc" data-i18n="how_step3_d">Hover any player card on FACEIT, hit Ban, type a reason. They'll be highlighted in red on every page from then on — for you and any friend you invite to your banlist.</div>
     </div>
   </div>
 </section>
@@ -222,25 +222,25 @@
   <div class="privacy-inner">
     <div>
       <div class="section-kicker" data-i18n="privacy_kicker">// PRIVACY</div>
-      <h2 class="section-title" style="margin-bottom: 24px;" data-i18n="privacy_title">Your data, your machine.</h2>
-      <p class="privacy-lead" data-i18n="privacy_lead">PurgeQ is self-hosted by design. There is no PurgeQ Inc., no analytics, no account, no email collection. Just code you run.</p>
+      <h2 class="section-title" style="margin-bottom: 24px;" data-i18n="privacy_title">EU-hosted. GDPR by default.</h2>
+      <p class="privacy-lead" data-i18n="privacy_lead">Hosted on Supabase Frankfurt + Cloudflare EU. No email collected, no analytics, no third-party trackers. Export or delete everything in two clicks from the popup.</p>
     </div>
     <div class="privacy-points">
       <div>
-        <div class="privacy-point-t" data-i18n="privacy_p1_t">Local-first</div>
-        <div class="privacy-point-d" data-i18n="privacy_p1_d">The banlist lives in your Postgres. The API runs in your network. Nothing leaves it unless you point your friends' extensions at the same URL.</div>
+        <div class="privacy-point-t" data-i18n="privacy_p1_t">EU-only</div>
+        <div class="privacy-point-d" data-i18n="privacy_p1_d">Your profile and banlist sit in Supabase Frankfurt under DPA. Cloudflare handles the static landing + bot check, also EU. No transfers to US servers in normal use.</div>
       </div>
       <div>
         <div class="privacy-point-t" data-i18n="privacy_p2_t">No tracking</div>
-        <div class="privacy-point-d" data-i18n="privacy_p2_d">Zero analytics, zero telemetry, zero pings to a third party. The extension talks to your server and nothing else.</div>
+        <div class="privacy-point-d" data-i18n="privacy_p2_d">No analytics SDK, no telemetry, no tracking pixels — neither in the extension nor on this page. The only network calls are to Supabase, Cloudflare and Discord OAuth.</div>
       </div>
       <div>
-        <div class="privacy-point-t" data-i18n="privacy_p3_t">Open source</div>
-        <div class="privacy-point-d" data-i18n="privacy_p3_d">MIT licensed. Audit the 5k lines of TypeScript and Python yourself, or hand it to whoever you trust to.</div>
+        <div class="privacy-point-t" data-i18n="privacy_p3_t">GDPR built-in</div>
+        <div class="privacy-point-d" data-i18n="privacy_p3_d">Settings → Your data: Export gives you a JSON dump of everything we store; Delete account wipes it for good. No email to write, no form to fill.</div>
       </div>
       <div>
         <div class="privacy-point-t" data-i18n="privacy_p4_t">No FACEIT account access</div>
-        <div class="privacy-point-d" data-i18n="privacy_p4_d">PurgeQ never reads your FACEIT credentials or match history. It just paints names on the pages you already see.</div>
+        <div class="privacy-point-d" data-i18n="privacy_p4_d">PurgeQ never reads your FACEIT credentials, match history or chat. The extension paints names on the FACEIT pages you already see, that&rsquo;s it.</div>
       </div>
     </div>
   </div>
@@ -320,7 +320,7 @@
         <span class="brand-monogram">PQ</span>
         <span class="brand-name">Purge<span class="accent">Q</span></span>
       </a>
-      <div class="footer-tagline" data-i18n="footer_tagline">Personal blacklist for FACEIT. Self-hosted. Open source.</div>
+      <div class="footer-tagline" data-i18n="footer_tagline">Personal blacklist for FACEIT. Free, EU-hosted, open source.</div>
     </div>
     <div class="footer-col">
       <div class="footer-col-title" data-i18n="footer_install">Install</div>
