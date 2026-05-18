@@ -27,6 +27,7 @@ build/
 *.crt
 secrets/
 credentials*
+.codesight/
 
 # Logs
 *.log
@@ -39,6 +40,7 @@ logs/
 *.swo
 *~
 .claude/
+CLAUDE.MD
 .mcp.json
 
 # Docker
