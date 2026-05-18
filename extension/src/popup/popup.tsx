@@ -1182,9 +1182,17 @@ const PopupApp: React.FC = () => {
   // ─────────────── Auth gate ───────────────
   if (authLoading) {
     return (
-      <div className="popup-container">
-        <main className="main centered">
-          <div className="empty">{tr('banlist.loading')}</div>
+      <div className="popup-container splash-container">
+        <main className="splash">
+          <span className="splash-corner splash-corner-tl" aria-hidden="true" />
+          <span className="splash-corner splash-corner-tr" aria-hidden="true" />
+          <span className="splash-corner splash-corner-bl" aria-hidden="true" />
+          <span className="splash-corner splash-corner-br" aria-hidden="true" />
+          <div className="splash-brand">
+            <span className="splash-shield"><Icon.Shield /></span>
+            <span className="splash-wordmark">PurgeQ</span>
+          </div>
+          <p className="splash-tagline-loading">{tr('banlist.loading')}</p>
         </main>
       </div>
     );
@@ -1192,24 +1200,33 @@ const PopupApp: React.FC = () => {
 
   if (!session) {
     return (
-      <div className="popup-container">
-        <main className="main centered">
-          <div className="auth-splash">
-            <div className="brand">
-              <span className="brand-icon"><Icon.Shield /></span>
-              <span className="brand-name">PurgeQ</span>
-            </div>
-            <p className="page-hint">Sign in with Discord to access your banlist.</p>
-            {error && <div className="alert alert-error">{error}</div>}
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={handleSignIn}
-              disabled={authLoading}
-            >
-              <Icon.Discord /> <span>Sign in with Discord</span>
-            </button>
+      <div className="popup-container splash-container">
+        <main className="splash">
+          <span className="splash-corner splash-corner-tl" aria-hidden="true" />
+          <span className="splash-corner splash-corner-tr" aria-hidden="true" />
+          <span className="splash-corner splash-corner-bl" aria-hidden="true" />
+          <span className="splash-corner splash-corner-br" aria-hidden="true" />
+
+          <div className="splash-brand">
+            <span className="splash-shield"><Icon.Shield /></span>
+            <span className="splash-wordmark">PurgeQ</span>
           </div>
+
+          <p className="splash-tagline">
+            Never queue with <span className="splash-strike">that guy</span>. Again.
+          </p>
+          <p className="splash-sub">Personal cheater &amp; toxic-player blacklist for FACEIT.</p>
+
+          {error && <div className="alert alert-error splash-alert">{error}</div>}
+
+          <button
+            type="button"
+            className="btn btn-primary splash-btn"
+            onClick={handleSignIn}
+            disabled={authLoading}
+          >
+            <Icon.Discord /> <span>Sign in with Discord</span>
+          </button>
         </main>
       </div>
     );

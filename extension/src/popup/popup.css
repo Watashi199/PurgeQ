@@ -554,6 +554,118 @@ body {
   flex-wrap: wrap;
 }
 
+.settings-gdpr {
+  /* Without this the Export / Delete buttons stick to the popup's bottom
+     edge because .page has zero bottom padding. */
+  padding-bottom: 18px;
+}
+
+/* ===================== Auth splash ===================== */
+
+.splash-container {
+  /* Hide the sidebar layout edge case where the splash takes the full
+     popup width but the container still has the row flex from the
+     authed UI. */
+  display: block;
+}
+
+.splash {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 28px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 85, 0, 0.07), transparent 55%),
+    linear-gradient(180deg, #121214 0%, #0c0c0e 100%);
+}
+
+/* Corner brackets — subtle L shapes echoing the banner artwork. */
+.splash-corner {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255, 85, 0, 0.55);
+  pointer-events: none;
+}
+.splash-corner-tl { top: 14px; left: 14px; border-right: 0; border-bottom: 0; }
+.splash-corner-tr { top: 14px; right: 14px; border-left: 0; border-bottom: 0; }
+.splash-corner-bl { bottom: 14px; left: 14px; border-right: 0; border-top: 0; }
+.splash-corner-br { bottom: 14px; right: 14px; border-left: 0; border-top: 0; }
+
+.splash-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.splash-shield {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Scale up the inline 24×24 SVG icon. */
+}
+.splash-shield > svg {
+  width: 40px;
+  height: 40px;
+}
+
+.splash-wordmark {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  color: var(--text-primary);
+}
+
+.splash-tagline {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  line-height: 1.3;
+  max-width: 280px;
+}
+
+.splash-strike {
+  position: relative;
+  color: var(--text-secondary);
+  text-decoration: line-through;
+  text-decoration-color: var(--orange);
+  text-decoration-thickness: 2px;
+}
+
+.splash-sub {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin: 0 0 24px;
+  max-width: 260px;
+}
+
+.splash-tagline-loading {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  letter-spacing: 0.3px;
+}
+
+.splash-alert {
+  margin: 0 0 14px;
+  max-width: 280px;
+}
+
+.splash-btn {
+  min-width: 220px;
+  padding: 12px 16px;
+  font-size: 14px;
+  gap: 8px;
+}
+
 .btn-self-start {
   align-self: flex-start;
   padding: 8px 12px;
