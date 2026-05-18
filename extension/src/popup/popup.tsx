@@ -1190,7 +1190,7 @@ const PopupApp: React.FC = () => {
           <span className="splash-corner splash-corner-br" aria-hidden="true" />
           <div className="splash-brand">
             <span className="splash-shield"><Icon.Shield /></span>
-            <span className="splash-wordmark">PurgeQ</span>
+            <span className="splash-wordmark">Purge<span className="splash-q">Q</span></span>
           </div>
           <p className="splash-tagline-loading">{tr('banlist.loading')}</p>
         </main>
@@ -1209,7 +1209,7 @@ const PopupApp: React.FC = () => {
 
           <div className="splash-brand">
             <span className="splash-shield"><Icon.Shield /></span>
-            <span className="splash-wordmark">PurgeQ</span>
+            <span className="splash-wordmark">Purge<span className="splash-q">Q</span></span>
           </div>
 
           <p className="splash-tagline">

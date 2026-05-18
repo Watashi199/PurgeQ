@@ -663,7 +663,16 @@ body {
   min-width: 220px;
   padding: 12px 16px;
   font-size: 14px;
+  /* inline-flex so the Discord icon sits on the text's vertical center
+     (inline-baseline alignment puts it ~2px low otherwise). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
+}
+
+.splash-q {
+  color: var(--orange);
 }
 
 .btn-self-start {
