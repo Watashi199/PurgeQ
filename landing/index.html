@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PurgeQ — Personal blacklist for FACEIT</title>
+  <meta name="description" content="Flag cheaters and toxic players once. PurgeQ highlights them on every FACEIT card so you spot the trash before the loading screen." />
+  <link rel="icon" type="image/png" href="assets/logo-shield.png" />
+  <link rel="stylesheet" href="shared.css" />
+  <link rel="stylesheet" href="landing.css" />
+</head>
+<body>
+
+<!-- ============== Top bar ============== -->
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <img class="brand-shield" src="assets/logo-shield.svg" alt="" />
+    <span class="brand-monogram">PQ</span>
+    <span class="brand-name">Purge<span class="accent">Q</span></span>
+  </a>
+  <nav class="topbar-nav">
+    <a href="#features" data-i18n="nav_features">Features</a>
+    <a href="#how" data-i18n="nav_how">How it works</a>
+    <a href="#privacy" data-i18n="nav_privacy">Privacy</a>
+    <a href="#faq" data-i18n="nav_faq">FAQ</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="lang-switch">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="fr">FR</button>
+    </div>
+    <a class="btn btn-ghost btn-mono" href="https://github.com/Watashi199/PurgeQ" target="_blank" rel="noopener" data-i18n="nav_github">GitHub</a>
+    <a class="btn btn-primary btn-mono" href="#install" data-i18n="nav_install">Install</a>
+  </div>
+</header>
+
+<!-- ============== Hero ============== -->
+<section class="hero">
+  <div class="hero-grid">
+    <div class="hero-copy">
+      <div class="hero-kicker" data-i18n="hero_kicker">// PERSONAL BLACKLIST · FACEIT OVERLAY</div>
+      <h1 class="hero-title" data-i18n="hero_title" data-i18n-html>Never queue with that guy. Again.</h1>
+      <p class="hero-sub" data-i18n="hero_sub">Flag cheaters, smurfs and toxic players once. PurgeQ highlights them directly on every FACEIT card — lobby, match room, party, profile — so you spot the trash before the loading screen.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="https://github.com/Watashi199/PurgeQ/releases/latest" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-i18n="hero_cta_install">Install for Chrome</span>
+        </a>
+        <a class="btn btn-ghost" href="https://github.com/Watashi199/PurgeQ" target="_blank" rel="noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.65.5.5 5.65.5 12.02c0 5.1 3.29 9.42 7.86 10.95.58.1.79-.25.79-.55v-2.09c-3.2.7-3.88-1.37-3.88-1.37-.52-1.32-1.27-1.68-1.27-1.68-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.68 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.28 1.18-3.09-.12-.29-.51-1.46.11-3.04 0 0 .97-.31 3.18 1.18.92-.26 1.91-.39 2.9-.39.98 0 1.97.13 2.9.39 2.21-1.49 3.18-1.18 3.18-1.18.62 1.58.23 2.75.11 3.04.73.81 1.18 1.83 1.18 3.09 0 4.42-2.7 5.4-5.27 5.69.41.36.78 1.06.78 2.14v3.17c0 .31.21.66.79.55 4.57-1.53 7.85-5.85 7.85-10.95C23.5 5.65 18.35.5 12 .5z"/></svg>
+          <span data-i18n="hero_cta_github">View on GitHub</span>
+        </a>
+      </div>
+      <div class="hero-meta">
+        <span class="hero-meta-item" data-i18n="hero_meta_os">Chrome · Firefox · Edge · Brave</span>
+        <span class="hero-meta-item" data-i18n="hero_meta_license">MIT · Self-hosted · No accounts</span>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-popup-mount" id="hero-popup"></div>
+      <div class="hero-frame" style="display:none;">
+        <div class="hero-frame-header">
+          <span>purgeq // popup · v1.0</span>
+          <div class="hero-frame-dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="hero-frame-body" style="padding:0;">
+          <div style="display:flex; height:100%; background:#0b0b0c;">
+            <div style="width:128px; flex-shrink:0; background:#131316; border-right:1px solid var(--border); padding:14px 10px; display:flex; flex-direction:column; gap:2px;">
+              <div style="display:flex; align-items:center; gap:6px; padding:2px 4px 14px;">
+                <img src="assets/logo-shield.svg" width="18" height="18" alt="" />
+                <span style="font-weight:700; font-size:13px;">PurgeQ</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:rgba(255,85,0,0.14); color:var(--orange-light); border-radius:5px; font-size:12px; font-weight:500;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ff5500" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                Banlist
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; color:var(--text-secondary); font-size:12px; font-weight:500;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                Import
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; color:var(--text-secondary); font-size:12px; font-weight:500;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px; color:var(--text-secondary); font-size:12px; font-weight:500;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/></svg>
+                Settings
+              </div>
+              <div style="margin-top:auto; padding-top:10px; border-top:1px solid var(--border); font-size:11px; color:var(--text-muted);">
+                <div style="text-transform:uppercase; letter-spacing:0.06em; font-size:10px;">Banned</div>
+                <div style="color:var(--orange); font-weight:700; font-size:14px; margin-top:2px;">249</div>
+              </div>
+            </div>
+            <div style="flex:1; padding:18px; display:flex; flex-direction:column; gap:10px; min-width:0; background:#0b0b0c;">
+              <div style="font-size:16px; font-weight:700;">Banlist</div>
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 10px 8px 30px; background:var(--bg-input); border:1px solid var(--border); border-radius:5px; font-size:12px; color:var(--text-muted); position:relative;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="position:absolute; left:10px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Search by name or reason…
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#17171a; border:1px solid var(--border); border-radius:6px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:hsl(214, 65%, 50%); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px;">W</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:13px;" data-i18n="hero_card_name">Watashi-</div>
+                  <div style="font-size:11px; color:var(--text-secondary);"><span style="color:var(--text-muted);">Reason:</span> Wallhack · 3 rounds</div>
+                  <div style="font-size:11px; color:var(--text-muted);">By: Drazy · 09/05/2026</div>
+                </div>
+                <div style="width:22px; height:22px; border-radius:5px; background:rgba(239,68,68,0.12); color:#fca5a5; display:flex; align-items:center; justify-content:center;">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#17171a; border:1px solid var(--border); border-radius:6px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:hsl(91, 65%, 50%); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px;">S</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:13px;">spinbot__</div>
+                  <div style="font-size:11px; color:var(--text-secondary);"><span style="color:var(--text-muted);">Reason:</span> Spinbot · obvious</div>
+                  <div style="font-size:11px; color:var(--text-muted);">By: QUEMANDEUR · 09/05/2026</div>
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:10px; padding:10px; background:#17171a; border:1px solid var(--border); border-radius:6px;">
+                <div style="width:32px; height:32px; border-radius:50%; background:hsl(2, 65%, 50%); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:13px;">R</div>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-weight:700; font-size:13px;">rage.quitter</div>
+                  <div style="font-size:11px; color:var(--text-secondary);"><span style="color:var(--text-muted);">Reason:</span> AFK + slurs</div>
+                  <div style="font-size:11px; color:var(--text-muted);">By: Naytars · 08/05/2026</div>
+                </div>
+              </div>
+              <button style="margin-top:auto; padding:11px; background:linear-gradient(135deg, #ff5500 0%, #cc3a00 100%); color:white; border:0; border-radius:6px; font-weight:600; font-size:13px; box-shadow:0 4px 14px var(--orange-glow); cursor:pointer;">Add Ban</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== How it works ============== -->
+<section id="how">
+  <div class="section-kicker" data-i18n="how_kicker">// HOW IT WORKS</div>
+  <h2 class="section-title" data-i18n="how_title">Three steps. No accounts. No telemetry.</h2>
+  <div class="how-steps">
+    <div class="step">
+      <div class="step-corner">// STEP</div>
+      <div class="step-num" data-i18n="how_step1_n">01</div>
+      <div class="step-title" data-i18n="how_step1_t">Run the server</div>
+      <div class="step-desc" data-i18n="how_step1_d">One docker compose up. Postgres + Redis + the API on your machine, NAS, or a $5 VPS. The installer generates your API key.</div>
+    </div>
+    <div class="step">
+      <div class="step-corner">// STEP</div>
+      <div class="step-num" data-i18n="how_step2_n">02</div>
+      <div class="step-title" data-i18n="how_step2_t">Load the extension</div>
+      <div class="step-desc" data-i18n="how_step2_d">Grab the latest zip from Releases, drop it into chrome://extensions, paste your server URL and API key. Done in 60 seconds.</div>
+    </div>
+    <div class="step">
+      <div class="step-corner">// STEP</div>
+      <div class="step-num" data-i18n="how_step3_n">03</div>
+      <div class="step-title" data-i18n="how_step3_t">Flag with one click</div>
+      <div class="step-desc" data-i18n="how_step3_d">Hover any player card on FACEIT, hit Ban, type a reason. They'll be highlighted in red on every page from then on — for you and anyone sharing your server.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== Features ============== -->
+<section id="features">
+  <div class="section-kicker" data-i18n="feat_kicker">// FEATURES</div>
+  <h2 class="section-title" data-i18n="feat_title">Built to make the toxic invisible.</h2>
+  <div class="features-grid">
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4l16 0v12H8z"/><path d="M4 22h7"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="feat_1_t">Visual highlight</div>
+      <div class="feature-desc" data-i18n="feat_1_d">Flagged players get a red glow + red nickname on every card. Hover to see the reason your past self left.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="9" y1="9" x2="15" y2="15"/><line x1="15" y1="9" x2="9" y2="15"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="feat_2_t">One-click flag</div>
+      <div class="feature-desc" data-i18n="feat_2_d">Hover, click Ban, type why. Your name is stamped automatically. Unban is one click too.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="feat_3_t">Live sync</div>
+      <div class="feature-desc" data-i18n="feat_3_d">New player joins your lobby? PurgeQ hits the server in real time. Your teammates' flags appear within seconds.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="feat_4_t">Team-shared lists</div>
+      <div class="feature-desc" data-i18n="feat_4_d">Point several extensions at the same server with the same key. Everyone sees the same list, edits propagate instantly.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="feat_5_t">Import / Export</div>
+      <div class="feature-desc" data-i18n="feat_5_d">Bulk-add from JSON or CSV. Export anytime for backup. Migrate from another tool, or seed your team with a starter list.</div>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
+      </div>
+      <div class="feature-title" data-i18n="feat_6_t">Works offline</div>
+      <div class="feature-desc" data-i18n="feat_6_d">The extension caches the last list locally. Highlights still show even if your server is asleep.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============== Privacy ============== -->
+<section class="privacy" id="privacy">
+  <div class="privacy-inner">
+    <div>
+      <div class="section-kicker" data-i18n="privacy_kicker">// PRIVACY</div>
+      <h2 class="section-title" style="margin-bottom: 24px;" data-i18n="privacy_title">Your data, your machine.</h2>
+      <p class="privacy-lead" data-i18n="privacy_lead">PurgeQ is self-hosted by design. There is no PurgeQ Inc., no analytics, no account, no email collection. Just code you run.</p>
+    </div>
+    <div class="privacy-points">
+      <div>
+        <div class="privacy-point-t" data-i18n="privacy_p1_t">Local-first</div>
+        <div class="privacy-point-d" data-i18n="privacy_p1_d">The banlist lives in your Postgres. The API runs in your network. Nothing leaves it unless you point your friends' extensions at the same URL.</div>
+      </div>
+      <div>
+        <div class="privacy-point-t" data-i18n="privacy_p2_t">No tracking</div>
+        <div class="privacy-point-d" data-i18n="privacy_p2_d">Zero analytics, zero telemetry, zero pings to a third party. The extension talks to your server and nothing else.</div>
+      </div>
+      <div>
+        <div class="privacy-point-t" data-i18n="privacy_p3_t">Open source</div>
+        <div class="privacy-point-d" data-i18n="privacy_p3_d">MIT licensed. Audit the 5k lines of TypeScript and Python yourself, or hand it to whoever you trust to.</div>
+      </div>
+      <div>
+        <div class="privacy-point-t" data-i18n="privacy_p4_t">No FACEIT account access</div>
+        <div class="privacy-point-d" data-i18n="privacy_p4_d">PurgeQ never reads your FACEIT credentials or match history. It just paints names on the pages you already see.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== FAQ ============== -->
+<section id="faq">
+  <div class="section-kicker" data-i18n="faq_kicker">// FAQ</div>
+  <h2 class="section-title" data-i18n="faq_title">Questions, briefly.</h2>
+  <div class="faq-list">
+    <div class="faq-item is-open">
+      <button class="faq-q" type="button">
+        <span data-i18n="faq_q1">Is this against FACEIT's ToS?</span>
+        <span class="faq-q-icon"></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq_a1">PurgeQ is a purely visual client-side overlay. It does not interact with FACEIT's API, does not automate matchmaking, does not modify pages for other users. It reads what your browser already displays and adds a colored border. That said: you are responsible for how you use it.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" type="button">
+        <span data-i18n="faq_q2">Does it dodge players for me?</span>
+        <span class="faq-q-icon"></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq_a2">No. PurgeQ flags. You choose what to do about it — leave, party with someone else, or just go in informed. We do not interfere with the queue.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" type="button">
+        <span data-i18n="faq_q3">Do I need to expose my server to the internet?</span>
+        <span class="faq-q-icon"></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq_a3">Only if you want friends on other networks to share your list. For solo use, localhost is fine. For LAN teammates, your local IP is fine. For internet sharing, put Caddy or Nginx in front and use the multi-tenant Discord flow.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" type="button">
+        <span data-i18n="faq_q4">What happens to my list if the server is down?</span>
+        <span class="faq-q-icon"></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq_a4">The extension caches the last fetched list locally. Highlights keep showing. Adding new flags is paused until the server is back — they queue and retry.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" type="button">
+        <span data-i18n="faq_q5">Can it pull lists from a public cheater database?</span>
+        <span class="faq-q-icon"></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq_a5">Not yet, by design. PurgeQ is your call, not a crowd-sourced verdict. The import endpoint accepts any JSON / CSV though, so feeding it from another source is trivial.</div></div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" type="button">
+        <span data-i18n="faq_q6">Why orange?</span>
+        <span class="faq-q-icon"></span>
+      </button>
+      <div class="faq-a"><div class="faq-a-inner" data-i18n="faq_a6">Because flagged players are red, and orange is the only color that survives both being next to red AND being on a dark UI without looking like a fire alarm.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============== CTA band ============== -->
+<section class="cta-band" id="install">
+  <div class="cta-band-kicker" data-i18n="cta_band_kicker">// READY</div>
+  <h2 class="cta-band-title" data-i18n="cta_band_title">Stop seeing them. Start winning more.</h2>
+  <p class="cta-band-sub" data-i18n="cta_band_sub">Sixty seconds to install. Forever to enjoy.</p>
+  <div class="cta-band-buttons">
+    <a class="btn btn-primary" href="https://github.com/Watashi199/PurgeQ/releases/latest" target="_blank" rel="noopener">
+      <span data-i18n="hero_cta_install">Install for Chrome</span>
+    </a>
+    <a class="btn btn-ghost" href="https://github.com/Watashi199/PurgeQ" target="_blank" rel="noopener">
+      <span data-i18n="hero_cta_github">View on GitHub</span>
+    </a>
+  </div>
+</section>
+
+<!-- ============== Footer ============== -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div class="footer-brand-row">
+      <a class="brand" href="index.html">
+        <img class="brand-shield" src="assets/logo-shield.svg" alt="" />
+        <span class="brand-monogram">PQ</span>
+        <span class="brand-name">Purge<span class="accent">Q</span></span>
+      </a>
+      <div class="footer-tagline" data-i18n="footer_tagline">Personal blacklist for FACEIT. Self-hosted. Open source.</div>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title" data-i18n="footer_install">Install</div>
+      <ul>
+        <li><a href="https://github.com/Watashi199/PurgeQ/releases/latest" target="_blank" rel="noopener" data-i18n="footer_chrome">Chrome Web Store</a></li>
+        <li><a href="https://github.com/Watashi199/PurgeQ/releases/latest" target="_blank" rel="noopener" data-i18n="footer_firefox">Firefox Add-ons</a></li>
+        <li><a href="https://github.com/Watashi199/PurgeQ/releases/latest" target="_blank" rel="noopener" data-i18n="footer_release">Latest release</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title" data-i18n="footer_resources">Resources</div>
+      <ul>
+        <li><a href="https://github.com/Watashi199/PurgeQ" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/Watashi199/PurgeQ/blob/main/README.md" target="_blank" rel="noopener" data-i18n="footer_docs">Documentation</a></li>
+        <li><a href="https://github.com/Watashi199/PurgeQ/blob/main/ARCHITECTURE.md" target="_blank" rel="noopener" data-i18n="footer_arch">Architecture</a></li>
+        <li><a href="https://github.com/Watashi199/PurgeQ/blob/main/PRIVACY.md" target="_blank" rel="noopener" data-i18n="footer_privacy_doc">Privacy policy</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <div class="footer-col-title">Project</div>
+      <ul>
+        <li><a href="https://github.com/Watashi199/PurgeQ/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+        <li><a href="https://github.com/Watashi199/PurgeQ/issues" target="_blank" rel="noopener">Report an issue</a></li>
+        <li><a href="https://github.com/Watashi199/PurgeQ/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener">Contributing</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-legal">
+    <span data-i18n="footer_legal">© 2026 PurgeQ · MIT License · Not affiliated with FACEIT.</span>
+    <span>v1.0 · built with Claude</span>
+  </div>
+</footer>
+
+<!-- Tweaks panel mount -->
+<div id="tweaks-root"></div>
+
+<!-- Scripts -->
+<script src="strings.js"></script>
+<script src="i18n.js"></script>
+
+<script>
+  // FAQ accordion
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.faq-q').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const item = btn.closest('.faq-item');
+        item.classList.toggle('is-open');
+      });
+    });
+  });
+</script>
+
+<!-- Tweaks + real popup component (React + Babel) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="mockup-components.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+  // Mount the actual popup component from mockup-components.jsx into the hero
+  const heroMount = document.getElementById('hero-popup');
+  if (heroMount) {
+    // The PopupBanlist renders inside a 560x600 wrapper with its own 24px padding +
+    // centering. We strip that by removing the outer wrapper at render time.
+    function HeroPopupHost() {
+      // Render the real popup but bypass the outer centering wrapper styles
+      return (
+        <div style={{transform:'scale(1)', transformOrigin:'top left'}}>
+          <PopupBanlist />
+        </div>
+      );
+    }
+    // PopupBanlist wraps itself in a 100%-height centering div with 24px padding
+    // and a #0a0a0b background. Override that by mounting then restyling.
+    ReactDOM.createRoot(heroMount).render(<PopupBanlist bare />);
+  }
+</script>
+
+<script type="text/babel">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "logoMode": "shield"
+  }/*EDITMODE-END*/;
+
+  function PurgeQTweaks() {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+    React.useEffect(() => {
+      const cls = `logo-mode-${t.logoMode}`;
+      document.body.classList.remove('logo-mode-shield', 'logo-mode-wordmark', 'logo-mode-monogram');
+      document.body.classList.add(cls);
+    }, [t.logoMode]);
+
+    const lang = (window.PurgeQI18n && window.PurgeQI18n.get()) || 'en';
+    const S = window.PURGEQ_STRINGS[lang];
+
+    return (
+      <TweaksPanel title={S.tweaks_title}>
+        <TweakSection title={S.tweaks_logo}>
+          <TweakRadio
+            value={t.logoMode}
+            onChange={(v) => setTweak('logoMode', v)}
+            options={[
+              { value: 'shield', label: S.tweaks_logo_shield },
+              { value: 'wordmark', label: S.tweaks_logo_wordmark },
+              { value: 'monogram', label: S.tweaks_logo_mono }
+            ]}
+          />
+        </TweakSection>
+      </TweaksPanel>
+    );
+  }
+
+  const root = ReactDOM.createRoot(document.getElementById('tweaks-root'));
+  root.render(<PurgeQTweaks />);
+</script>
+
+</body>
+</html>
