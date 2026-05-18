@@ -1,44 +1,54 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-PurgeQ is actively maintained on the following versions with security updates:
+PurgeQ is a single-track project. Only the latest published version of
+the extension and the live SaaS backend receive security fixes. Earlier
+versions stop being supported as soon as a newer one ships to the
+stores.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 2.0.x   | :white_check_mark: |
-| 1.9.x   | :white_check_mark: |
-| 1.8.x   | :x:                |
-| < 1.8   | :x:                |
+## Reporting a vulnerability
 
-> Only the latest minor versions receive security patches and critical fixes.
-
----
-
-## Reporting a Vulnerability
-
-If you discover a security vulnerability in PurgeQ, please report it responsibly.
+Please report security issues privately — **do not open a public issue
+on the tracker**.
 
 ### 📩 Where to report
-Please contact me directly on Twitter: **@Watashi_R6S**
+
+DM **@Watashi_R6S** on X (Twitter) with the words "PurgeQ security" in
+your message, or open a private security advisory on GitHub:
+<https://github.com/Watashi199/PurgeQ/security/advisories/new>
 
 ### 🔒 What to include
-Please provide as much detail as possible:
-- Description of the vulnerability
-- Steps to reproduce
-- Affected version(s)
-- Potential impact
-- Proof of concept (if available)
+
+- A clear description of the vulnerability.
+- Steps to reproduce it.
+- Affected component (extension popup / content script / Supabase
+  migration / auth bridge page).
+- Potential impact (data leak, account takeover, persistent XSS, etc.).
+- Proof of concept when possible.
 
 ### 🧠 What happens next
-- If accepted: patch + optional credit to reporter
-- If declined: explanation of why it is not considered valid or in scope
-- You may be contacted for clarification during investigation
 
-### 🚫 Please do NOT
-- Publicly disclose the vulnerability before a fix is released
-- Exploit the issue on production systems or user data
+- I'll acknowledge the report within a few days.
+- Valid issues get patched as quickly as possible. For high-impact
+  vulnerabilities I'll fast-track a release.
+- You're welcome to be credited in the release notes if you want.
+- Declined reports come with a short explanation.
 
----
+### 🚫 Please do not
 
-Thanks for helping keep PurgeQ secure 🧠
+- Publicly disclose before a fix is released.
+- Exploit issues against real user data — RLS lets you create your own
+  test accounts to demonstrate scope.
+
+## Scope notes
+
+- **In scope**: the extension code (`extension/`), the auth bridge page
+  (`landing/auth/`), the Supabase migrations and RLS policies
+  (`supabase/migrations/`), the GitHub Actions release workflow.
+- **Out of scope**: vulnerabilities in upstream dependencies that
+  haven't been patched yet (please report those to their respective
+  projects), social engineering of maintainers, and issues that
+  require a compromised user device.
+
+Thanks for helping keep PurgeQ safe.

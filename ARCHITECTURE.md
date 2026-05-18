@@ -1,320 +1,134 @@
 # PurgeQ Architecture
 
-## System Overview
+## System overview
 
-PurgeQ is a distributed banlist management system for FACEIT players. It consists of three main components:
-
-1. **Backend API** - FastAPI async service
-2. **Database** - PostgreSQL with async operations
-3. **Extension** - Chrome/Firefox browser extension
-4. **Cache/Rate Limit** - Redis
+PurgeQ is a Chrome / Firefox extension backed by a serverless SaaS
+stack. The extension is the only code we run on the user's machine; the
+backend is fully managed on Supabase + Cloudflare with no application
+servers we maintain.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    Browser Extension                         │
-│  ┌──────────────┬──────────────┬─────────────────────────┐  │
-│  │ Content      │ Background   │ Popup                   │  │
-│  │ Script       │ Worker       │ (React UI)              │  │
-│  └──────┬───────┴──────┬───────┴──────┬──────────────────┘  │
-│         │              │              │                     │
-│         └──────────────┼──────────────┘                     │
-└──────────────────────────┼────────────────────────────────────┘
-                           │ HTTPS
-                           ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   FastAPI Backend                            │
-│  ┌─────────────────────────────────────────────────────────┐ │
-│  │ Routers (API v1)                                        │ │
-│  │  • GET    /api/v1/banlist                              │ │
-│  │  • POST   /api/v1/ban                                  │ │
-│  │  • DELETE /api/v1/ban/{faceit_name}                    │ │
-│  │  • GET    /health                                      │ │
-│  └──────────────┬────────────────────────────────────────┘ │
-│                 │                                           │
-│  ┌──────────────▼────────────────────────────────────────┐ │
-│  │ Services Layer (Business Logic)                        │ │
-│  │  • BanlistService                                      │ │
-│  │    - Async CRUD operations                             │ │
-│  │    - Cache management                                  │ │
-│  │    - Data validation                                   │ │
-│  └──────────────┬────────────────────────────────────────┘ │
-│                 │                                           │
-│  ┌──────────────▼────────────────────────────────────────┐ │
-│  │ Core Modules                                           │ │
-│  │  • Config         - Settings management                │ │
-│  │  • Database       - SQLAlchemy async setup             │ │
-│  │  • Cache          - Redis operations                   │ │
-│  │  • Security       - API key validation                 │ │
-│  │  • Rate Limiting  - Redis-based rate limiter          │ │
-│  │  • Exceptions     - Custom exception hierarchy        │ │
-│  └────────────────────────────────────────────────────────┘ │
-└──────────┬───────────────────────────┬──────────────────────┘
-           │                           │
-           ▼                           ▼
-    ┌─────────────────┐        ┌──────────────────┐
-    │   PostgreSQL    │        │     Redis        │
-    │  (Banlist DB)   │        │  (Cache/Limits)  │
-    └─────────────────┘        └──────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    Browser Extension (MV3)                    │
+│  ┌──────────────┬──────────────┬─────────────────────────┐   │
+│  │ Content      │ Background   │ Popup                   │   │
+│  │ Script       │ Service      │ (React UI)              │   │
+│  │ (FACEIT)     │ Worker       │ banlist / share /       │   │
+│  │              │              │ import / export /       │   │
+│  │              │              │ settings                │   │
+│  └──────┬───────┴──────┬───────┴──────┬──────────────────┘   │
+│         │              │              │                       │
+│         │   chrome.runtime.sendMessage routing                │
+│         │              │              │                       │
+│         │              ▼              │                       │
+│         │     ┌────────────────────┐  │                       │
+│         │     │ chrome.storage      │  │                       │
+│         │     │ (session + cache)   │  │                       │
+│         │     └────────────────────┘  │                       │
+└─────────┼──────────────┬─────────────┼────────────────────────┘
+          │              │             │
+          │              │             │
+          └──────────────┼─────────────┘
+                         │ HTTPS, supabase-js
+                         ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     Supabase (eu-central-1)                   │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ Auth (Discord OAuth + Cloudflare Turnstile bot check) │  │
+│  ├────────────────────────────────────────────────────────┤  │
+│  │ PostgREST API (auto-generated CRUD on tables)          │  │
+│  ├────────────────────────────────────────────────────────┤  │
+│  │ Postgres                                                │  │
+│  │  • profiles, banlists, banlist_members,                │  │
+│  │    bans, banlist_invites                                │  │
+│  │  • RLS policies enforce per-tenant isolation            │  │
+│  │  • RPC: accept_invite, import_bans, delete_my_account   │  │
+│  └────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+                         ▲
+                         │ OAuth handoff via auth-bridge page
+                         │
+┌──────────────────────────────────────────────────────────────┐
+│              Cloudflare Pages (purgeq.wsrv.xyz)               │
+│  ┌──────────────┬───────────────────────────────────────┐    │
+│  │ /            │ Landing page (static HTML + JSX)      │    │
+│  │ /auth/       │ Turnstile + Discord OAuth bridge      │    │
+│  └──────────────┴───────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-## Components
+## Why a bridge auth page
 
-### Backend Architecture
+Cloudflare Turnstile refuses to render its widget from a
+`chrome-extension://...` origin. The extension can't drive the captcha
+challenge directly, so we host a tiny page (`landing/auth/index.html`)
+on a real domain Cloudflare accepts. The extension opens that page via
+`chrome.identity.launchWebAuthFlow`, the page solves Turnstile and
+initiates Supabase OAuth, and the final callback bounces through
+`<extension-id>.chromiumapp.org` back to the extension.
 
-#### 1. API Layer (Routers)
-- Handles HTTP requests/responses
-- Validates headers and parameters
-- Delegates business logic to services
-- Manages authentication and rate limiting
+## Data model
 
-#### 2. Service Layer
-- **BanlistService**: All banlist operations
-  - `get_all_items()` - Fetch with caching
-  - `get_item_by_faceit_name()` - Case-insensitive lookup
-  - `create_item()` - Add with duplicate check
-  - `update_item()` - Modify details
-  - `delete_item()` - Remove with cache invalidation
-  - `get_banlist_map()` - Optimized O(1) lookup structure
-  - `health_check()` - Database connectivity
+Five public tables, one enum, all in the `public` schema:
 
-#### 3. Data Layer
-- **Models** (SQLAlchemy)
-  - `BanlistItem` - Core entity
-- **Schemas** (Pydantic v2)
-  - Request validation
-  - Response serialization
+| Table             | Purpose                                                |
+| ----------------- | ------------------------------------------------------ |
+| `profiles`        | 1:1 with `auth.users`, holds Discord ID + display name |
+| `banlists`        | one per user (MVP), owner FK to `auth.users`           |
+| `banlist_members` | sharing rows (viewer / editor)                         |
+| `bans`            | the actual banned-player entries                       |
+| `banlist_invites` | tokens for accepting share invites                     |
 
-#### 4. Core Infrastructure
-- **Config**: Environment-based settings
-- **Database**: Async SQLAlchemy with connection pooling
-- **Cache**: Redis with TTL management
-- **Security**: API key validation
-- **Rate Limiting**: Sliding window algorithm with Redis
-- **Exceptions**: Custom hierarchy for error handling
+Plus the `banlist_role` enum (`viewer | editor`) used by `banlist_members`
+and `banlist_invites`.
 
-### Extension Architecture
+RLS policies on every table enforce:
 
-#### Content Script (`content-script.ts`)
-- Runs in FACEIT page context
-- Observes DOM mutations for player names
-- Detects players using configurable selectors
-- Marks banned players with visual indicators
-- Highlights player elements (reduced opacity)
-- Adds clickable badges with tooltips
+- a user can read bans in **their own** banlist OR any banlist they're
+  a member of;
+- they can write bans in their own or in a banlist where they're an
+  editor;
+- they can manage members and invites only for banlists they own.
 
-#### Background Service Worker (`service-worker.ts`)
-- Periodic banlist refresh (60s interval)
-- Cache management
-- Message routing to/from content script
-- Notification system
-- Offline state handling
+Three helper functions in a private `private` schema (`user_can_read_banlist`,
+`user_can_write_banlist`, and the trigger logic in `handle_new_user`)
+keep the policies short and readable.
 
-#### Popup UI (`popup.tsx`)
-- React component with TypeScript
-- Search/filter functionality
-- Add/remove ban operations
-- Banned player counter
-- Responsive dark mode support
-- Real-time list updates
+## Source tree
 
-#### Shared Utilities (`utils.ts`)
-- API client functions
-- Cache operations
-- Format utilities
-- Type definitions
+- [`extension/`](extension/) — the browser extension (TypeScript + React,
+  Vite build).
+  - `src/popup/` — popup React app
+  - `src/background/service-worker.ts` — talks to Supabase, caches in
+    `chrome.storage.local`, broadcasts BANLIST_UPDATED to tabs
+  - `src/content/content-script.ts` — runs on faceit.com, flags banned
+    cards and exposes inline Ban / Unban
+  - `src/shared/` — shared modules (supabase client, banlist store,
+    settings, i18n, DB types)
+- [`landing/`](landing/) — static landing page deployed on Cloudflare
+  Pages, with `landing/auth/` for the OAuth bridge.
+- [`supabase/migrations/`](supabase/migrations/) — versioned SQL
+  migrations (schema, RLS policies, RPC functions). Numbered
+  chronologically and append-only.
 
-### Data Flow
+## Local development
 
-#### Add to Banlist Flow
-```
-Popup UI
-   │
-   ├─ GET_BANLIST → Background
-   │                   │
-   │                   ├─ Check cache
-   │                   ├─ Fetch from API if needed
-   │                   └─ Return cached/fresh data
-   │
-   ├─ User fills form
-   ├─ POST /api/v1/ban
-   │    │
-   │    ├─ API validates API-Key
-   │    ├─ Check rate limit
-   │    ├─ Validate schema
-   │    ├─ Check duplicate
-   │    ├─ Insert to DB
-   │    ├─ Invalidate cache
-   │    └─ Return BanlistItem
-   │
-   └─ Update UI with new item
-```
+- **Extension** — `cd extension && npm install && npm run build`, then
+  load `extension/dist/` as an unpacked extension in
+  `chrome://extensions`.
+- **Auth page** — open `landing/index.html` from the deployed
+  Cloudflare Pages preview URL (Turnstile rejects `file://`). Edit
+  `landing/auth/index.html` to point at a Supabase preview project if
+  needed.
+- **Supabase** — schema is reproducible from
+  [`supabase/migrations/`](supabase/migrations/) via the Supabase CLI
+  or the Studio SQL editor.
 
-#### Detection Flow
-```
-Page Load
-   │
-   ├─ Content script initializes
-   ├─ Background refreshes banlist
-   ├─ Cache stored in chrome.storage.local
-   │
-   └─ DOM MutationObserver activated
-        │
-        ├─ Detects new player elements
-        ├─ Extracts player names
-        ├─ Checks against cached banlist (O(1))
-        ├─ If banned:
-        │   ├─ Reduce element opacity
-        │   ├─ Add red badge
-        │   └─ Add click handler for tooltip
-        │
-        └─ Updates existing players
-```
+## CI / releases
 
-## Performance Considerations
-
-### Backend Optimization
-
-1. **Async/Await**: All I/O operations are async
-   - No thread blocking on database/network
-   - Efficient handling of concurrent requests
-
-2. **Connection Pooling**: SQLAlchemy NullPool
-   - Each request gets dedicated connection
-   - No connection limit overhead
-
-3. **Redis Caching**:
-   - Banlist cached for 1 hour
-   - Cache invalidated on writes
-   - Reduces database load by ~90%
-
-4. **O(1) Lookup**:
-   - Banlist stored as Map with lowercase keys
-   - Instant player ban status check
-   - No need for database queries
-
-5. **Rate Limiting**:
-   - Sliding window with Redis
-   - Per-IP address tracking
-   - Configurable limits (100/60s default)
-
-6. **Database Indexes**:
-   - Composite index on faceit_name
-   - Case-insensitive lookups optimized
-
-### Extension Optimization
-
-1. **DOM Monitoring**:
-   - Debounced MutationObserver (300ms)
-   - Prevents excessive re-scanning
-   - Efficient element selection
-
-2. **Client-Side Caching**:
-   - Local storage for offline support
-   - 1-hour TTL matches backend cache
-   - Automatic sync with background worker
-
-3. **O(1) Player Lookup**:
-   - JavaScript Map with lowercase keys
-   - Instant banned status check
-   - No API calls during detection
-
-4. **Lazy Loading**:
-   - Styles injected on demand
-   - Scripts loaded asynchronously
-   - Minimal memory footprint
-
-## Security Architecture
-
-### API Authentication
-- X-API-Key header validation
-- Keys stored in environment
-- Configurable per-environment
-
-### Input Validation
-- Pydantic schemas validate all inputs
-- FACEIT name: 2-32 chars, alphanumeric + - _
-- Reason: 1-250 characters
-- Author: 2-32 characters
-- SQL injection prevention via ORM
-
-### Rate Limiting
-- Redis sliding window per IP
-- Configurable requests/period
-- Returns 429 on limit exceeded
-
-### CORS
-- Configurable allowed origins
-- Prevents cross-origin abuse
-- Cookie-based session support
-
-### Extension
-- Content Security Policy in manifest
-- No inline scripts or eval()
-- Secure DOM manipulation
-- Safe JSON parsing
-
-## Database Schema
-
-### banlist_items table
-```
-id (UUID)           - Primary key
-faceit_name (VARCHAR 32)   - Unique, indexed
-reason (VARCHAR 250)       - Ban reason
-author (VARCHAR 32)        - Ban author
-created_at (TIMESTAMP)     - Creation time
-updated_at (TIMESTAMP)     - Last update
-
-Indexes:
-- PRIMARY KEY (id)
-- UNIQUE (faceit_name)
-- INDEX (faceit_name_lower)
-```
-
-## Deployment Modes
-
-### Development
-```bash
-docker-compose up
-uvicorn api.app.main:app --reload
-```
-
-### Production
-```bash
-docker-compose -f docker-compose.yml \
-  -f docker-compose.prod.yml up -d
-
-# or Kubernetes, AWS ECS, etc.
-```
-
-## Monitoring & Observability
-
-### Health Checks
-- `/health` - Full system check
-- Database connectivity
-- Redis connectivity
-- Returns 200 if all OK, 500 if degraded
-
-### Logging
-- Structured logging with Python logging
-- Request/response logging
-- Error tracking with stack traces
-
-### Metrics (Future)
-- Prometheus exposition format
-- Request latency
-- Cache hit/miss rates
-- Database query times
-- Rate limit hits
-
-## Future Enhancements
-
-1. **Authentication**: JWT tokens with expiration
-2. **Audit Logging**: Track all ban changes
-3. **Webhooks**: Real-time updates to clients
-4. **Notifications**: Email/Discord alerts
-5. **Analytics**: Ban statistics and trends
-6. **API Versioning**: Multiple API versions
-7. **GraphQL**: Alternative query interface
-8. **WebSockets**: Real-time updates
-9. **Database Replication**: High availability
-10. **Geographic Distribution**: CDN caching
+- [`.github/workflows/release.yml`](.github/workflows/release.yml) fires
+  on tag push (semver) — builds the three extension zips, uploads to
+  Chrome Web Store and Firefox AMO, and creates a GitHub Release with
+  the zips attached.
+- See [`extension/REVIEWER_NOTES.md`](extension/REVIEWER_NOTES.md) for
+  the store-review checklist.
