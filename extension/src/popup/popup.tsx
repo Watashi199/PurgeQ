@@ -437,6 +437,10 @@ const PopupApp: React.FC = () => {
   // UI state
   const [tab, setTab] = useState<Tab>('banlist');
   const [banlist, setBanlist] = useState<BanInfo[]>([]);
+  // `synced` flips to true once we've successfully pulled fresh data from
+  // Supabase. The little green dot in the sidebar pulses while it's true,
+  // and drops to false on a fetch error so users can see they're offline.
+  const [synced, setSynced] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [newBan, setNewBan] = useState({ faceit_name: '', reason: '' });
@@ -551,7 +555,9 @@ const PopupApp: React.FC = () => {
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
       setBanlist(items);
+      setSynced(true);
     } catch (err) {
+      setSynced(false);
       setError(`Failed to load banlist: ${errorMessage(err)}`);
     } finally {
       setLoading(false);
@@ -1239,6 +1245,13 @@ const PopupApp: React.FC = () => {
         <div className="brand">
           <span className="brand-icon"><Icon.Shield /></span>
           <span className="brand-name">Purge<span className="splash-q">Q</span></span>
+          {synced && (
+            <span
+              className="sync-dot"
+              title="Synced with Supabase"
+              aria-label="Synced"
+            />
+          )}
         </div>
         <nav className="nav">
           <button
@@ -1316,7 +1329,27 @@ const PopupApp: React.FC = () => {
               </div>
             </>
           )}
-          <div className="footer-value">{tr('footer.banned')}: {banlist.length}</div>
+          {/* Usage bar — Free tier caps at 250 flagged players. The bar
+              colour shifts to amber/red as the user approaches the limit. */}
+          {(() => {
+            const FREE_BAN_LIMIT = 250;
+            const owned = banlist.filter((b) => b.is_own).length;
+            const pct = Math.min(100, Math.round((owned / FREE_BAN_LIMIT) * 100));
+            const tone = pct >= 90 ? 'danger' : pct >= 75 ? 'warn' : 'ok';
+            return (
+              <div className="usage">
+                <div className="usage-row">
+                  <span className="footer-label">{tr('footer.banned')}</span>
+                  <span className="usage-count">
+                    {owned} <span className="usage-limit">/ {FREE_BAN_LIMIT}</span>
+                  </span>
+                </div>
+                <div className="usage-track" aria-hidden="true">
+                  <div className={`usage-fill usage-fill-${tone}`} style={{ width: `${pct}%` }} />
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </aside>
 
