@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy Policy — PurgeQ</title>
+  <meta name="description" content="What PurgeQ stores, who it's shared with, and how to delete it." />
+  <meta name="robots" content="noindex" />
+  <link rel="icon" type="image/png" href="../assets/logo-shield.png" />
+  <link rel="stylesheet" href="../shared.css" />
+  <style>
+    body { padding: 32px 20px 60px; max-width: 760px; margin: 0 auto; line-height: 1.65; }
+    .legal-topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 32px; }
+    .legal-back { color: var(--text-secondary); font-size: 13px; }
+    .legal-back:hover { color: var(--orange); }
+    .legal-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
+    .legal-brand img { width: 22px; height: 22px; }
+    .legal-brand .accent { color: var(--orange); }
+    h1 { font-size: 32px; font-weight: 800; margin: 0 0 8px; letter-spacing: -0.4px; }
+    h2 { font-size: 18px; font-weight: 700; margin: 32px 0 10px; color: var(--text-primary); }
+    h3 { font-size: 15px; font-weight: 600; margin: 20px 0 6px; color: var(--text-primary); }
+    p, li { font-size: 14.5px; color: var(--text-secondary); }
+    ul { padding-left: 22px; margin: 8px 0 12px; }
+    li { margin-bottom: 4px; }
+    code { background: var(--bg-elevated); padding: 1px 6px; border-radius: var(--radius); font-family: var(--font-mono); font-size: 13px; color: var(--text-primary); }
+    a { color: var(--orange-light); text-decoration: underline; text-underline-offset: 3px; }
+    a:hover { color: var(--orange); }
+    .legal-meta { color: var(--text-muted); font-size: 12.5px; margin-bottom: 32px; }
+    .legal-foot { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--border); display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text-muted); }
+    .legal-foot a { color: var(--text-secondary); text-decoration: none; }
+    .legal-foot a:hover { color: var(--orange); }
+  </style>
+</head>
+<body>
+
+<header class="legal-topbar">
+  <a class="legal-brand" href="../">
+    <img src="../assets/logo-shield.svg" alt="" />
+    Purge<span class="accent">Q</span>
+  </a>
+  <a class="legal-back" href="../">← Back</a>
+</header>
+
+<main>
+  <h1>Privacy Policy</h1>
+  <p class="legal-meta">Last updated: 2026-05-18</p>
+
+  <p>PurgeQ is a community-built tool for highlighting banned players on FACEIT. This policy describes what data is collected, who it's shared with, and how you can get rid of it.</p>
+
+  <h2>What we store</h2>
+  <p>When you sign in with Discord, the following is created in our database (Supabase, EU region):</p>
+  <ul>
+    <li>A <strong>profile row</strong> with your Discord user ID and Discord display name (pulled from the OAuth response). No email, no Discord token, no avatar URL.</li>
+    <li>A <strong>personal banlist</strong> owned by you.</li>
+    <li><strong>Ban entries</strong> you create: the FACEIT nickname you flagged, the reason you typed, your display name (as author), and a timestamp.</li>
+    <li><strong>Membership rows</strong> when you accept a shared banlist invite.</li>
+    <li><strong>Invite tokens</strong> when you generate a sharable link.</li>
+  </ul>
+  <p>The extension also keeps a local cache of your banlist in <code>chrome.storage.local</code> so FACEIT pages still display markers when the service is briefly unreachable. The cache contains the same data as above and is wiped when you sign out.</p>
+
+  <h2>What we do <em>not</em> store</h2>
+  <ul>
+    <li>No email address.</li>
+    <li>No Discord OAuth refresh token after the session ends.</li>
+    <li>No IP address tied to your account in our database. Cloudflare logs IPs at the edge for fraud / DDoS purposes (standard CDN behaviour), retained for 7 days, never joined to your PurgeQ identity.</li>
+    <li>No FACEIT credentials, match histories, chat content, or any data beyond the nicknames you explicitly flag.</li>
+    <li>No analytics, no tracking pixels, no third-party SDKs in the extension or on the landing page beyond the auth providers below.</li>
+  </ul>
+
+  <h2>Processors we share data with</h2>
+  <p>We rely on three vendors. Each is bound by a Data Processing Agreement (DPA) and stores data in EU regions:</p>
+  <ul>
+    <li><strong>Supabase</strong> (database + auth) — your profile and banlist data live here. Region: <code>aws-eu-central-1</code> (Frankfurt).</li>
+    <li><strong>Cloudflare</strong> — hosts the landing page, the auth bridge page, and the Turnstile bot-protection challenge.</li>
+    <li><strong>Discord</strong> — the OAuth identity provider. Discord receives your authorisation grant; PurgeQ receives back only your user ID and display name.</li>
+  </ul>
+  <p>We do <strong>not</strong> share data with anyone else: no analytics, no advertisers, no data brokers.</p>
+
+  <h2>What the extension reads from web pages</h2>
+  <p>The content script runs on <code>https://www.faceit.com/*</code> and reads:</p>
+  <ul>
+    <li>The <strong>nicknames</strong> displayed on player cards.</li>
+    <li>The <strong>href</strong> of player profile links (fallback when a nickname isn't directly in the card).</li>
+  </ul>
+  <p>These are read so banned nicknames can be visually flagged and the inline Ban button knows which player you meant. Nicknames are sent to Supabase only when you explicitly click <strong>Ban</strong>.</p>
+  <p>The extension does <strong>not</strong> read or transmit your FACEIT login state, match histories, statistics, chat content, mouse movement, keystrokes, scroll position, or the content of any other website.</p>
+
+  <h2>Your rights (GDPR)</h2>
+  <p>You can exercise these rights at any time, no email needed, directly from <strong>Settings → Your data</strong> in the extension popup:</p>
+  <ul>
+    <li><strong>Right of access / portability</strong> — click <strong>Export my data</strong>. We give you a JSON file containing your profile, your banlist, every ban you can read, your memberships and your generated invites.</li>
+    <li><strong>Right to erasure</strong> — click <strong>Delete account</strong>. We delete your profile, your banlist, every ban you authored, your memberships, and your invite tokens. The Supabase auth row is also dropped. The action is irreversible.</li>
+  </ul>
+  <p>You also have the right to lodge a complaint with your national data protection authority (CNIL in France).</p>
+
+  <h2>Permissions and why they're needed</h2>
+  <ul>
+    <li><code>storage</code> — keep your settings and the cached banlist between sessions.</li>
+    <li><code>alarms</code> — schedule the periodic background refresh (MV3 service workers can't keep long-running timers).</li>
+    <li><code>identity</code> — required by <code>chrome.identity.launchWebAuthFlow</code>, which opens the Discord OAuth window during sign-in.</li>
+    <li><code>https://www.faceit.com/*</code> (host permission) — run the content script that flags banned players on FACEIT pages.</li>
+    <li><code>https://*.supabase.co/*</code> (host permission) — talk to the Supabase backend.</li>
+  </ul>
+
+  <h2>Children</h2>
+  <p>PurgeQ is intended for FACEIT users, who must be at least 13 years old per FACEIT's terms. We do not knowingly collect data from children.</p>
+
+  <h2>Contact</h2>
+  <p>PurgeQ is an open-source project. Issues, feature requests and security reports go through the public issue tracker: <a href="https://github.com/Watashi199/PurgeQ/issues">github.com/Watashi199/PurgeQ/issues</a>.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>Any future change is reflected in <a href="https://github.com/Watashi199/PurgeQ/blob/main/PRIVACY.md">PRIVACY.md</a> in the public repository. The "Last updated" date is revised when content changes.</p>
+</main>
+
+<footer class="legal-foot">
+  <a href="../">Home</a>
+  <a href="../privacy/">Privacy</a>
+  <a href="../terms/">Terms</a>
+  <a href="https://github.com/Watashi199/PurgeQ">GitHub</a>
+</footer>
+
+</body>
+</html>
