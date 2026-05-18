@@ -1238,7 +1238,7 @@ const PopupApp: React.FC = () => {
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-icon"><Icon.Shield /></span>
-          <span className="brand-name">PurgeQ</span>
+          <span className="brand-name">Purge<span className="splash-q">Q</span></span>
         </div>
         <nav className="nav">
           <button
