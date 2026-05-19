@@ -122,10 +122,8 @@ section {
   gap: 72px;
   align-items: center;
   width: 100%;
-}
-.hero-copy {
-  max-width: 540px;
-  margin-left: auto;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 .hero-kicker {
   font-family: var(--font-mono);

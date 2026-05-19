@@ -441,7 +441,7 @@
         ro.observe(heroMount);
         return () => ro.disconnect();
       }, []);
-      return <div style={{zoom: scale}}><PopupBanlist bare /></div>;
+      return <div style={{zoom: scale, width: 780}}><PopupBanlist bare /></div>;
     }
     ReactDOM.createRoot(heroMount).render(<HeroPopupHost />);
   }
