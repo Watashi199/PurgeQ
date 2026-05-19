@@ -11,9 +11,10 @@ with, and how you can get rid of it.
 When you sign in with Discord, the following is created in our database
 (Supabase, EU region):
 
-- A **profile row** with your Discord user ID and Discord display name
-  (pulled from the OAuth response). No email, no Discord token, no
-  avatar URL.
+- A **profile row** with your Discord user ID, Discord display name
+  (pulled from the OAuth response), and a boolean indicating whether
+  you have an active Pro subscription (`is_pro`). No email, no Discord
+  token, no avatar URL.
 - A **personal banlist** owned by you.
 - **Ban entries** you create: the FACEIT nickname you flagged, the
   reason you typed, your display name (as author), and a timestamp.
@@ -39,7 +40,7 @@ above and is wiped when you sign out.
 
 ## Processors we share data with
 
-We rely on three vendors. Each is bound by a Data Processing Agreement
+We rely on four vendors. Each is bound by a Data Processing Agreement
 (DPA) and stores data in EU regions:
 
 - **Supabase** (database + auth) — your profile and banlist data live
@@ -49,6 +50,10 @@ We rely on three vendors. Each is bound by a Data Processing Agreement
 - **Discord** — the OAuth identity provider. Discord receives your
   authorisation grant; PurgeQ receives back only your user ID and
   display name.
+- **Stripe** — payment processor for Pro subscriptions. When you
+  subscribe, Stripe handles card data entirely on their side; PurgeQ
+  only receives a webhook confirmation and sets your `is_pro` flag. We
+  never see or store your card number, expiry, or CVV.
 
 We do **not** share data with anyone else: no analytics, no advertisers,
 no data brokers.

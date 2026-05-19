@@ -124,6 +124,17 @@ keep the policies short and readable.
   [`supabase/migrations/`](supabase/migrations/) via the Supabase CLI
   or the Studio SQL editor.
 
+## Payments (Pro tier)
+
+Stripe is used for Pro subscriptions. The checkout flow is entirely
+Stripe-hosted; the extension never touches card data. On a successful
+`checkout.session.completed` event, Stripe sends a webhook to the
+`stripe-webhook` Supabase Edge Function, which sets `profiles.is_pro =
+true` for the purchasing user via the service-role key. A
+`charge.dispute.created` event triggers the reverse (sets `is_pro =
+false`). The `is_pro` column is column-level protected so only the
+service role can write it — no client-side escalation is possible.
+
 ## CI / releases
 
 - [`.github/workflows/release.yml`](.github/workflows/release.yml) fires

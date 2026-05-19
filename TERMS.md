@@ -66,9 +66,18 @@ exporting your data via **Settings → Your data → Export my data**.
 
 ## Pricing
 
-PurgeQ is free to use. If a paid tier ever launches, the free tier
-will keep working with reasonable limits, and you'll be notified in
-advance.
+PurgeQ has a **free tier** and a **Pro tier**.
+
+The free tier is permanent and includes up to 250 ban entries per
+banlist. No credit card required.
+
+The Pro tier is a one-time purchase that removes the 250-ban cap and
+unlocks banlist sharing (invite other users as viewers or editors).
+Payments are processed by Stripe. If you dispute a charge and the
+dispute is upheld, Pro access is revoked automatically.
+
+You can export your data at any time regardless of your tier via
+**Settings → Your data → Export my data**.
 
 ## Termination
 
