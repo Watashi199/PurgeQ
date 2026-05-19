@@ -5,6 +5,14 @@
 body {
   min-height: 100vh;
   overflow-x: hidden;
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(ellipse 70% 55% at 75% 28%, rgba(255, 85, 0, 0.14) 0%, transparent 60%),
+    linear-gradient(to right, var(--border-faint) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-faint) 1px, transparent 1px);
+  background-size: 100% 100vh, 56px 56px, 56px 56px;
+  background-repeat: no-repeat, repeat, repeat;
+  background-attachment: fixed, scroll, scroll;
 }
 
 /* ---- Top bar ---- */
@@ -102,7 +110,7 @@ section {
   background: radial-gradient(circle, var(--orange-glow) 0%, transparent 60%);
   pointer-events: none;
   z-index: -1;
-  opacity: 0.5;
+  opacity: 0.85;
 }
 .hero-grid {
   display: grid;

@@ -17,9 +17,14 @@
       align-items: center;
       justify-content: center;
       font-family: 'Space Grotesk', system-ui, sans-serif;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(255, 85, 0, 0.06), transparent 55%),
-        linear-gradient(180deg, #121214 0%, #0a0a0b 100%);
+      background-color: #0a0a0b;
+      background-image:
+        radial-gradient(ellipse 90% 60% at 70% 25%, rgba(255, 85, 0, 0.14) 0%, transparent 60%),
+        linear-gradient(to right, #1c1c20 1px, transparent 1px),
+        linear-gradient(to bottom, #1c1c20 1px, transparent 1px);
+      background-size: 100% 100vh, 56px 56px, 56px 56px;
+      background-repeat: no-repeat, repeat, repeat;
+      background-attachment: fixed, scroll, scroll;
     }
 
     .card {
