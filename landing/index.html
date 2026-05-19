@@ -429,19 +429,25 @@
   // Mount the actual popup component from mockup-components.jsx into the hero
   const heroMount = document.getElementById('hero-popup');
   if (heroMount) {
-    // The PopupBanlist renders inside a 560x600 wrapper with its own 24px padding +
-    // centering. We strip that by removing the outer wrapper at render time.
     function HeroPopupHost() {
-      // Render the real popup but bypass the outer centering wrapper styles
+      const [scale, setScale] = React.useState(1);
+      const wrapRef = React.useRef(null);
+      React.useEffect(() => {
+        const el = wrapRef.current;
+        if (!el) return;
+        const ro = new ResizeObserver(([e]) => setScale(e.contentRect.width / 780));
+        ro.observe(el);
+        return () => ro.disconnect();
+      }, []);
       return (
-        <div style={{transform:'scale(1)', transformOrigin:'top left'}}>
-          <PopupBanlist />
+        <div ref={wrapRef} style={{width:'100%', aspectRatio:'780/600', overflow:'hidden', position:'relative'}}>
+          <div style={{position:'absolute', top:0, left:0, width:780, height:600, transformOrigin:'top left', transform:`scale(${scale})`}}>
+            <PopupBanlist bare />
+          </div>
         </div>
       );
     }
-    // PopupBanlist wraps itself in a 100%-height centering div with 24px padding
-    // and a #0a0a0b background. Override that by mounting then restyling.
-    ReactDOM.createRoot(heroMount).render(<PopupBanlist bare />);
+    ReactDOM.createRoot(heroMount).render(<HeroPopupHost />);
   }
 </script>
 
