@@ -23,7 +23,7 @@ name: Release to stores
 on:
   push:
     tags:
-      - '[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -57,11 +57,12 @@ jobs:
         run: |
           MANIFEST_VERSION=$(node -p "require('./manifest.json').version")
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
-            if [ "$GITHUB_REF_NAME" != "$MANIFEST_VERSION" ]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
               echo "::error::Tag '$GITHUB_REF_NAME' does not match manifest.json version '$MANIFEST_VERSION'."
               exit 1
             fi
-            VERSION="$GITHUB_REF_NAME"
+            VERSION="$TAG_VERSION"
           else
             VERSION="$MANIFEST_VERSION"
           fi
