@@ -614,6 +614,104 @@ section {
   color: var(--text-dim);
 }
 
+/* ============ Pricing ============ */
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.pricing-card {
+  position: relative;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pricing-card-pro {
+  border-color: rgba(255, 85, 0, 0.5);
+  background: linear-gradient(160deg, rgba(255, 85, 0, 0.06) 0%, var(--bg-raised) 50%);
+  box-shadow: 0 0 0 1px rgba(255, 85, 0, 0.15), 0 8px 32px rgba(255, 85, 0, 0.08);
+}
+
+.pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #ff5500, #ff8800);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 12px;
+  border-radius: 20px;
+}
+
+.pricing-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.pricing-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pricing-amount {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.pricing-card-pro .pricing-amount {
+  color: var(--orange);
+}
+
+.pricing-period {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.pricing-features {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.pricing-features li {
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding-left: 20px;
+  position: relative;
+}
+
+.pricing-features li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--orange);
+  font-weight: 700;
+}
+
+.pricing-cta {
+  display: block;
+  text-align: center;
+  width: 100%;
+}
+
 /* ============ Responsive ============ */
 @media (max-width: 960px) {
   .topbar { padding: 14px 20px; }
@@ -632,4 +730,5 @@ section {
 @media (max-width: 560px) {
   .features-grid { grid-template-columns: 1fr; }
   .footer-grid { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; }
 }

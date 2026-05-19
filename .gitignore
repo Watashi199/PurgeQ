@@ -28,6 +28,7 @@ build/
 secrets/
 credentials*
 .codesight/
+.temp
 
 # Logs
 *.log

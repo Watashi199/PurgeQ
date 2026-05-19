@@ -10,13 +10,13 @@ match rooms, so you can avoid known trolls before the game starts.
 
 ## ⚡ What it does
 
-- 🔴 **Live highlight** — flagged players visually marked on FACEIT cards
-- ⚡ **One-click ban** — add a player from any card with a reason
-- 🤝 **Shared banlists** — generate an invite link and let friends / teammates
+- 🔴 **Live highlight** - flagged players visually marked on FACEIT cards
+- ⚡ **One-click ban** - add a player from any card with a reason
+- 🤝 **Shared banlists** - generate an invite link and let friends / teammates
   read or edit your list (viewer or editor role)
-- 📥 **Import / Export** — JSON or CSV, dedup'd server-side
-- 🔄 **Real-time sync** — popup mutations propagate to open FACEIT tabs
-- 🌍 **7 languages** — EN, FR, PT-BR, RU, TR, ES, DE
+- 📥 **Import / Export** - JSON or CSV, dedup'd server-side
+- 🔄 **Real-time sync** - popup mutations propagate to open FACEIT tabs
+- 🌍 **7 languages** - EN, FR, PT-BR, RU, TR, ES, DE
 
 ---
 
@@ -25,8 +25,8 @@ match rooms, so you can avoid known trolls before the game starts.
 PurgeQ is a hosted SaaS. There's nothing to install on a server — just
 add the extension:
 
-- **Chrome / Edge** — install from the Chrome Web Store
-- **Firefox** — install from addons.mozilla.org
+- **Chrome / Edge** - install from the Chrome Web Store
+- **Firefox** - install from addons.mozilla.org
 
 Click the extension icon, sign in with Discord, and you're done. Your
 "Personal Banlist" is created automatically.
@@ -37,12 +37,12 @@ Click the extension icon, sign in with Discord, and you're done. Your
 
 The whole stack is serverless on managed infrastructure:
 
-- **Extension** — TypeScript + React, built with Vite, MV3 service worker
-- **Backend** — Supabase (Postgres + Auth + RPC). Row Level Security
+- **Extension** - TypeScript + React, built with Vite, MV3 service worker
+- **Backend** - Supabase (Postgres + Auth + RPC). Row Level Security
   enforces per-tenant isolation; no application-layer access checks.
-- **Auth** — Supabase Auth with Discord OAuth, gated by Cloudflare
+- **Auth** - Supabase Auth with Discord OAuth, gated by Cloudflare
   Turnstile for bot protection
-- **Landing + auth bridge page** — static, hosted on Cloudflare Pages
+- **Landing + auth bridge page** - static, hosted on Cloudflare Pages
 
 See [`extension/`](extension/), [`supabase/migrations/`](supabase/migrations/)
 and [`landing/`](landing/) for the source. [`landing/auth/`](landing/auth/)

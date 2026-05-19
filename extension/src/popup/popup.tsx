@@ -47,9 +47,14 @@ interface ConfirmRequest {
   resolve: (ok: boolean) => void;
 }
 
+// Replace with your Stripe Payment Link URL (from stripe.com/payment-links).
+// The userId is appended so the webhook can identify who paid.
+const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/4gM00cabrec35kZdCe4ow00';
+
 interface Profile {
   display_name: string;
   discord_id: string;
+  is_pro: boolean;
 }
 
 interface MemberRow {
@@ -276,11 +281,6 @@ function shareT(lang: Language, key: string, vars?: Record<string, string | numb
   return str;
 }
 
-/**
- * Pull a human-readable message out of whatever was thrown / returned by
- * supabase-js. PostgrestError and AuthError aren't Error instances, so
- * `instanceof Error` misses them and `String(err)` yields "[object Object]".
- */
 function errorMessage(err: unknown): string {
   if (!err) return 'Unknown error';
   if (typeof err === 'string') return err;
@@ -294,6 +294,23 @@ function errorMessage(err: unknown): string {
     try { return JSON.stringify(err); } catch { /* fall through */ }
   }
   return String(err);
+}
+
+function friendlyError(err: unknown, lang: Language): string {
+  const raw = errorMessage(err).toLowerCase();
+  if (raw.includes('jwt expired') || raw.includes('session_expired') || raw.includes('not authenticated') || raw.includes('invalid jwt')) {
+    return t('err.sessionExpired', lang);
+  }
+  if (raw.includes('row-level security') || raw.includes('42501') || raw.includes('permission denied')) {
+    return t('err.permDenied', lang);
+  }
+  if (raw.includes('duplicate key') || raw.includes('unique constraint') || raw.includes('already exists')) {
+    return t('err.alreadyBanned', lang);
+  }
+  if (raw.includes('failed to fetch') || raw.includes('networkerror') || raw.includes('fetch error')) {
+    return t('err.networkFailed', lang);
+  }
+  return errorMessage(err);
 }
 
 function randomToken(): string {
@@ -410,6 +427,20 @@ const Icon = {
       <path d="M18.244 2H21l-6.522 7.452L22 22h-6.828l-4.77-6.234L4.8 22H2l7.07-8.078L2 2h6.914l4.302 5.69L18.244 2Zm-1.197 18h1.62L7.04 3.93H5.3l11.747 16.07Z"/>
     </svg>
   ),
+  Lock: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="16" height="16" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  ),
+  Edit: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round" width="14" height="14" aria-hidden="true">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  ),
 };
 
 function avatarColor(name: string): string {
@@ -456,7 +487,11 @@ const PopupApp: React.FC = () => {
   });
   const [confirmRequest, setConfirmRequest] = useState<ConfirmRequest | null>(null);
 
+  // Edit ban state
+  const [editingBan, setEditingBan] = useState<{ id: string; draft: string } | null>(null);
+
   // Share tab state
+  const [shareLoading, setShareLoading] = useState(false);
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [invites, setInvites] = useState<InviteLinkRow[]>([]);
   const [ownedBanlist, setOwnedBanlist] = useState<OwnedBanlistRow | null>(null);
@@ -495,19 +530,42 @@ const PopupApp: React.FC = () => {
         if (!newSession) {
           setProfile(null);
           setBanlist([]);
+        } else {
+          void loadProfile();
         }
       }
     );
     return () => subscription.unsubscribe();
   }, []);
 
-  // Auto-clear toasts.
+  // Realtime subscription — watch the user's own profile row for is_pro changes.
+  // Fires automatically when the Stripe webhook upgrades the account, so the
+  // PRO badge appears without any manual refresh.
+  useEffect(() => {
+    if (!session) return;
+    const channel = supabase
+      .channel(`profile-pro:${session.user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          setProfile(payload.new as Profile);
+        }
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [session?.user.id]);
+
+  // Auto-clear toasts — duration scales with message length (3–6 s).
   useEffect(() => {
     if (!error && !success) return;
-    const timer = setTimeout(() => {
-      setError('');
-      setSuccess('');
-    }, 3000);
+    const ms = Math.min(6000, Math.max(3000, (error || success).length * 55));
+    const timer = setTimeout(() => { setError(''); setSuccess(''); }, ms);
     return () => clearTimeout(timer);
   }, [error, success]);
 
@@ -540,9 +598,12 @@ const PopupApp: React.FC = () => {
 
   // ─── Data loaders ───
   async function loadProfile() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
     const { data } = await supabase
       .from('profiles')
-      .select('display_name, discord_id')
+      .select('display_name, discord_id, is_pro')
+      .eq('id', user.id)
       .maybeSingle();
     if (data) setProfile(data);
   }
@@ -577,6 +638,8 @@ const PopupApp: React.FC = () => {
    * user is allowed to see.
    */
   async function loadShareData() {
+    setShareLoading(true);
+    try {
     const { data: userData } = await supabase.auth.getUser();
     const myId = userData?.user?.id;
     if (!myId) return;
@@ -672,6 +735,9 @@ const PopupApp: React.FC = () => {
         .order('created_at', { ascending: false });
       setInvites((myInvites ?? []) as InviteLinkRow[]);
     }
+    } finally {
+      setShareLoading(false);
+    }
   }
 
   // ─── Share actions ───
@@ -681,6 +747,17 @@ const PopupApp: React.FC = () => {
     const { data: userData } = await supabase.auth.getUser();
     const myId = userData?.user?.id;
     if (!myId) return;
+
+    const currentMembers = members.filter((m) => m.is_in_owned_banlist).length;
+    if (currentMembers >= 5) {
+      setError(tr('err.seatLimit'));
+      return;
+    }
+
+    if (invites.length >= 10) {
+      setError(tr('err.inviteLimit'));
+      return;
+    }
 
     const token = randomToken();
     const { error: insertErr } = await supabase
@@ -692,7 +769,7 @@ const PopupApp: React.FC = () => {
         created_by: myId,
       });
     if (insertErr) {
-      setError(insertErr.message);
+      setError(friendlyError(insertErr, settings.language));
       return;
     }
     await loadShareData();
@@ -705,7 +782,7 @@ const PopupApp: React.FC = () => {
       .delete()
       .eq('id', id);
     if (deleteErr) {
-      setError(deleteErr.message);
+      setError(friendlyError(deleteErr, settings.language));
       return;
     }
     await loadShareData();
@@ -724,7 +801,7 @@ const PopupApp: React.FC = () => {
       .eq('banlist_id', member.banlist_id)
       .eq('user_id', member.user_id);
     if (deleteErr) {
-      setError(deleteErr.message);
+      setError(friendlyError(deleteErr, settings.language));
       return;
     }
     await loadShareData();
@@ -748,7 +825,7 @@ const PopupApp: React.FC = () => {
       .eq('banlist_id', member.banlist_id)
       .eq('user_id', myId);
     if (deleteErr) {
-      setError(deleteErr.message);
+      setError(friendlyError(deleteErr, settings.language));
       return;
     }
     await loadShareData();
@@ -796,6 +873,16 @@ const PopupApp: React.FC = () => {
     }
   }
 
+  // ─── Upgrade ───
+  async function handleUpgrade() {
+    const { data } = await supabase.auth.getUser();
+    const userId = data?.user?.id;
+    const url = userId
+      ? `${STRIPE_PAYMENT_LINK}?client_reference_id=${userId}`
+      : STRIPE_PAYMENT_LINK;
+    chrome.tabs.create({ url });
+  }
+
   // ─── Auth actions ───
   async function handleSignIn() {
     setError('');
@@ -812,14 +899,14 @@ const PopupApp: React.FC = () => {
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`Sign-in failed: ${errorMessage(err)}`);
+      setError(friendlyError(err, settings.language));
     } finally {
       setAuthLoading(false);
     }
   }
 
   async function handleSignOut() {
-    const ok = await askConfirm('Sign out', 'You will need to sign in again to see your banlist.');
+    const ok = await askConfirm(tr('modal.signOutTitle'), tr('modal.signOutMessage'));
     if (!ok) return;
     try {
       await signOut();
@@ -828,7 +915,7 @@ const PopupApp: React.FC = () => {
       });
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`Sign-out failed: ${errorMessage(err)}`);
+      setError(friendlyError(err, settings.language));
     }
   }
 
@@ -838,6 +925,12 @@ const PopupApp: React.FC = () => {
     const author = settings.defaultAuthor.trim() || profile?.display_name || 'User';
     if (!newBan.faceit_name.trim() || !newBan.reason.trim()) {
       setError(tr('err.allRequired'));
+      return;
+    }
+    const FREE_BAN_LIMIT = 250;
+    const ownedCount = banlist.filter((b) => b.is_own).length;
+    if (!profile?.is_pro && ownedCount >= FREE_BAN_LIMIT) {
+      setError(tr('err.freeTierLimit'));
       return;
     }
     try {
@@ -852,7 +945,7 @@ const PopupApp: React.FC = () => {
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`${errorMessage(err)}`);
+      setError(friendlyError(err, settings.language));
     } finally {
       setLoading(false);
     }
@@ -870,17 +963,17 @@ const PopupApp: React.FC = () => {
       await loadBanlist();
       notifyTabsBanlistChanged();
     } catch (err) {
-      setError(`${errorMessage(err)}`);
+      setError(friendlyError(err, settings.language));
     }
   }
 
   async function handleRefresh() {
     try {
-      await loadBanlist();
+      await Promise.all([loadProfile(), loadBanlist()]);
       notifyTabsBanlistChanged();
       setSuccess(tr('notif.refreshed'));
     } catch (err) {
-      setError(`${errorMessage(err)}`);
+      setError(friendlyError(err, settings.language));
     }
   }
 
@@ -895,7 +988,7 @@ const PopupApp: React.FC = () => {
       setSuccess(tr('notif.settingsSaved'));
       setTab('banlist');
     } catch (err) {
-      setError(`${errorMessage(err)}`);
+      setError(friendlyError(err, settings.language));
     }
   }
 
@@ -956,7 +1049,7 @@ const PopupApp: React.FC = () => {
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
 
-      setSuccess('Account export downloaded');
+      setSuccess(tr('notif.accountExported'));
     } catch (err) {
       setError(`Export failed: ${errorMessage(err)}`);
     } finally {
@@ -971,9 +1064,9 @@ const PopupApp: React.FC = () => {
    */
   async function handleDeleteAccount() {
     const ok = await askConfirm(
-      'Delete your account?',
-      'This permanently removes your account, your banlist, every ban you added and every membership / invite. This cannot be undone.',
-      'Delete forever'
+      tr('modal.deleteTitle'),
+      tr('modal.deleteMessage'),
+      tr('modal.deleteForever')
     );
     if (!ok) return;
     try {
@@ -993,7 +1086,7 @@ const PopupApp: React.FC = () => {
       setMembers([]);
       setInvites([]);
       setOwnedBanlist(null);
-      setSuccess('Account deleted');
+      setSuccess(tr('notif.accountDeleted'));
     } catch (err) {
       setError(`Delete failed: ${errorMessage(err)}`);
     } finally {
@@ -1036,7 +1129,7 @@ const PopupApp: React.FC = () => {
         author: header.indexOf('author'),
       };
       if (idx.faceit_name < 0) {
-        setError('CSV must have a "faceit_name" column');
+        setError(tr('err.csvMissingColumn'));
         return null;
       }
       const rows: { faceit_name: string; reason: string; author_name: string }[] = [];
@@ -1072,7 +1165,7 @@ const PopupApp: React.FC = () => {
     // JSON path
     let parsed: unknown;
     try { parsed = JSON.parse(text); }
-    catch { setError('Could not parse the JSON file'); return null; }
+    catch { setError(tr('err.jsonParseFailed')); return null; }
 
     const items: unknown[] = Array.isArray(parsed)
       ? parsed
@@ -1080,7 +1173,7 @@ const PopupApp: React.FC = () => {
         ? (parsed as { items: unknown[] }).items
         : [];
     if (items.length === 0 && !Array.isArray(parsed)) {
-      setError('JSON must be an array, or {items: [...]}');
+      setError(tr('err.jsonFormat'));
       return null;
     }
 
@@ -1097,7 +1190,14 @@ const PopupApp: React.FC = () => {
     return { rows };
   }
 
+  const IMPORT_MAX_BYTES = 5 * 1024 * 1024;  // 5 MB
+  const IMPORT_MAX_ROWS  = 5_000;
+
   async function handleImportFile(file: File) {
+    if (file.size > IMPORT_MAX_BYTES) {
+      setError(tr('err.fileTooLarge'));
+      return;
+    }
     try {
       setLoading(true);
       setError('');
@@ -1105,8 +1205,28 @@ const PopupApp: React.FC = () => {
       const parsed = await parseImportFile(file);
       if (!parsed) return;
       if (parsed.rows.length === 0) {
-        setError('File contains no rows');
+        setError(tr('err.fileEmpty'));
         return;
+      }
+
+      if (parsed.rows.length > IMPORT_MAX_ROWS) {
+        setError(tr('err.tooManyRows'));
+        return;
+      }
+
+      // Front-end cap: silently truncate to the remaining free-tier slots so
+      // the UX matches what the DB will actually insert.
+      if (!profile?.is_pro) {
+        const FREE_BAN_LIMIT = 250;
+        const ownedCount = banlist.filter((b) => b.is_own).length;
+        const remaining = FREE_BAN_LIMIT - ownedCount;
+        if (remaining <= 0) {
+          setError(tr('err.freeTierLimit'));
+          return;
+        }
+        if (parsed.rows.length > remaining) {
+          parsed.rows = parsed.rows.slice(0, remaining);
+        }
       }
 
       const { data, error: rpcErr } = await supabase.rpc('import_bans', {
@@ -1117,9 +1237,11 @@ const PopupApp: React.FC = () => {
       // The RPC returns a single-row set: [{ imported, skipped }].
       const summary = Array.isArray(data) ? data[0] : data;
       const imported = Number(summary?.imported ?? 0);
-      const skipped = Number(summary?.skipped ?? 0);
-      const parts = [`${imported} imported`];
-      if (skipped > 0) parts.push(`${skipped} skipped`);
+      const skipped  = Number(summary?.skipped  ?? 0);
+      const capped   = Number(summary?.capped   ?? 0);
+      const parts = [tr('notif.imported', { imported })];
+      if (skipped > 0) parts.push(tr('notif.skipped', { skipped }));
+      if (capped  > 0) parts.push(tr('notif.importCapped', { capped }));
       setSuccess(parts.join(', '));
 
       await loadBanlist();
@@ -1129,6 +1251,26 @@ const PopupApp: React.FC = () => {
       setError(`Import failed: ${errorMessage(err)}`);
     } finally {
       setLoading(false);
+    }
+  }
+
+  // ─── Edit ban ───
+  async function handleSaveEdit(item: BanInfo) {
+    if (!editingBan) return;
+    const reason = editingBan.draft.trim();
+    if (!reason) return;
+    try {
+      const { error: updateErr } = await supabase
+        .from('bans')
+        .update({ reason })
+        .eq('id', item.id);
+      if (updateErr) throw updateErr;
+      setEditingBan(null);
+      setSuccess(tr('notif.edited'));
+      await loadBanlist();
+      notifyTabsBanlistChanged();
+    } catch (err) {
+      setError(friendlyError(err, settings.language));
     }
   }
 
@@ -1231,7 +1373,7 @@ const PopupApp: React.FC = () => {
             onClick={handleSignIn}
             disabled={authLoading}
           >
-            <Icon.Discord /> <span>Sign in with Discord</span>
+            <Icon.Discord /> <span>{tr('auth.signInDiscord')}</span>
           </button>
         </main>
       </div>
@@ -1264,10 +1406,12 @@ const PopupApp: React.FC = () => {
             className={`nav-item ${tab === 'share' ? 'is-active' : ''}`}
             onClick={() => {
               setTab('share');
-              void loadShareData();
+              if (profile?.is_pro) void loadShareData();
             }}
           >
-            <Icon.Users /> <span>{sst('title')}</span>
+            <Icon.Users />
+            <span>{sst('title')}</span>
+            {!profile?.is_pro && <Icon.Lock />}
           </button>
           <button
             className={`nav-item ${tab === 'import' ? 'is-active' : ''}`}
@@ -1330,10 +1474,25 @@ const PopupApp: React.FC = () => {
             </>
           )}
           {/* Usage bar — Free tier caps at 250 flagged players. The bar
-              colour shifts to amber/red as the user approaches the limit. */}
+              colour shifts to amber/red as the user approaches the limit.
+              Pro users see an unlimited badge instead. */}
           {(() => {
             const FREE_BAN_LIMIT = 250;
             const owned = banlist.filter((b) => b.is_own).length;
+
+            if (profile?.is_pro) {
+              return (
+                <div className="usage">
+                  <div className="usage-row">
+                    <span className="footer-label">{tr('footer.banned')}</span>
+                    <span className="usage-count">
+                      {owned} <span className="usage-limit pro-badge">PRO</span>
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+
             const pct = Math.min(100, Math.round((owned / FREE_BAN_LIMIT) * 100));
             const tone = pct >= 90 ? 'danger' : pct >= 75 ? 'warn' : 'ok';
             return (
@@ -1347,6 +1506,15 @@ const PopupApp: React.FC = () => {
                 <div className="usage-track" aria-hidden="true">
                   <div className={`usage-fill usage-fill-${tone}`} style={{ width: `${pct}%` }} />
                 </div>
+                {pct >= 75 && (
+                  <button
+                    type="button"
+                    className="btn-upgrade"
+                    onClick={handleUpgrade}
+                  >
+                    GO PRO · $3
+                  </button>
+                )}
               </div>
             );
           })()}
@@ -1408,21 +1576,60 @@ const PopupApp: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <div className="ban-line">
-                        <span className="muted">{tr('banlist.reasonLabel')}:</span> {item.reason}
-                      </div>
+                      {editingBan?.id === item.id ? (
+                        <div className="ban-edit">
+                          <input
+                            type="text"
+                            className="input ban-edit-input"
+                            value={editingBan.draft}
+                            maxLength={250}
+                            autoFocus
+                            onChange={(e) => setEditingBan({ ...editingBan, draft: e.target.value })}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') void handleSaveEdit(item);
+                              if (e.key === 'Escape') setEditingBan(null);
+                            }}
+                          />
+                          <div className="ban-edit-actions">
+                            <button type="button" className="btn btn-ghost btn-inline"
+                              onClick={() => setEditingBan(null)}>
+                              {tr('modal.cancel')}
+                            </button>
+                            <button type="button" className="btn btn-primary btn-inline"
+                              onClick={() => void handleSaveEdit(item)}>
+                              {tr('settings.save')}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="ban-line">
+                          <span className="muted">{tr('banlist.reasonLabel')}:</span> {item.reason}
+                        </div>
+                      )}
                       <div className="ban-line ban-line-meta muted">
                         {tr('banlist.byLabel')}: {item.author} · {formatDate(item.created_at, settings.language)}
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      className="delete-btn"
-                      title={tr('banlist.deleteTooltip')}
-                      onClick={() => handleDeleteBan(item)}
-                    >
-                      <Icon.Trash />
-                    </button>
+                    {editingBan?.id !== item.id && item.is_own && (
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        title={tr('banlist.editTooltip')}
+                        onClick={() => setEditingBan({ id: item.id, draft: item.reason })}
+                      >
+                        <Icon.Edit />
+                      </button>
+                    )}
+                    {editingBan?.id !== item.id && (
+                      <button
+                        type="button"
+                        className="delete-btn"
+                        title={tr('banlist.deleteTooltip')}
+                        onClick={() => handleDeleteBan(item)}
+                      >
+                        <Icon.Trash />
+                      </button>
+                    )}
                   </div>
                 ))
               )}
@@ -1453,9 +1660,28 @@ const PopupApp: React.FC = () => {
           </section>
         )}
 
-        {tab === 'share' && (
+        {tab === 'share' && !profile?.is_pro && (
+          <section className="page paywall-page">
+            <div className="paywall">
+              <div className="paywall-icon"><Icon.Lock /></div>
+              <h2 className="paywall-title">{tr('paywall.title')}</h2>
+              <p className="paywall-desc">{tr('paywall.desc')}</p>
+              <ul className="paywall-features">
+                <li>{tr('paywall.feature1')}</li>
+                <li>{tr('paywall.feature2')}</li>
+              </ul>
+              <button type="button" className="btn-upgrade" onClick={handleUpgrade}>
+                GO PRO · $3
+              </button>
+            </div>
+          </section>
+        )}
+
+        {tab === 'share' && profile?.is_pro && (
           <section className="page">
             <h2 className="page-title">{sst('title')}</h2>
+            {shareLoading && <div className="empty">{tr('banlist.loading')}</div>}
+            {!shareLoading && (<>
 
             {/* Scrollable area — fills the remaining height and overflows
                 independently of the pinned "Accept invitation" footer below. */}
@@ -1615,6 +1841,7 @@ const PopupApp: React.FC = () => {
                 </button>
               </div>
             </div>
+          </>)}
           </section>
         )}
 
@@ -1722,23 +1949,20 @@ const PopupApp: React.FC = () => {
             <div className="settings-account">
               {profile && (
                 <div className="account-row">
-                  <span className="muted">Signed in as</span>
+                  <span className="muted">{tr('settings.signedInAs')}</span>
                   <strong>{profile.display_name}</strong>
                 </div>
               )}
               <button type="button" className="btn btn-ghost" onClick={handleSignOut}>
-                <Icon.LogOut /> <span>Sign out</span>
+                <Icon.LogOut /> <span>{tr('settings.signOut')}</span>
               </button>
             </div>
 
             <div className="settings-divider" />
 
             <div className="settings-gdpr">
-              <h3 className="section-title section-title-tight">Your data</h3>
-              <p className="page-hint settings-gdpr-hint">
-                Export everything we have about you, or delete your account
-                permanently. Required by GDPR — no questions asked.
-              </p>
+              <h3 className="section-title section-title-tight">{tr('settings.yourData')}</h3>
+              <p className="page-hint settings-gdpr-hint">{tr('settings.yourDataHint')}</p>
               <div className="settings-gdpr-actions">
                 <button
                   type="button"
@@ -1746,7 +1970,7 @@ const PopupApp: React.FC = () => {
                   onClick={handleExportAccount}
                   disabled={loading}
                 >
-                  <Icon.Download /> <span>Export my data</span>
+                  <Icon.Download /> <span>{tr('settings.exportData')}</span>
                 </button>
                 <button
                   type="button"
@@ -1754,7 +1978,7 @@ const PopupApp: React.FC = () => {
                   onClick={handleDeleteAccount}
                   disabled={loading}
                 >
-                  <Icon.Trash /> <span>Delete account</span>
+                  <Icon.Trash /> <span>{tr('settings.deleteAccount')}</span>
                 </button>
               </div>
             </div>

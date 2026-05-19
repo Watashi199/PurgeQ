@@ -168,18 +168,21 @@ export type Database = {
           discord_id: string
           display_name: string
           id: string
+          is_pro: boolean
         }
         Insert: {
           created_at?: string
           discord_id: string
           display_name: string
           id: string
+          is_pro?: boolean
         }
         Update: {
           created_at?: string
           discord_id?: string
           display_name?: string
           id?: string
+          is_pro?: boolean
         }
         Relationships: []
       }
@@ -203,6 +206,7 @@ export type Database = {
         Returns: {
           imported: number
           skipped: number
+          capped: number
         }[]
       }
       delete_my_account: {

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "PurgeQ - FACEIT Banlist",
-  "version": "2.1.2",
+  "version": "3.0.0",
   "description": "Real-time FACEIT player banlist checker with offline support",
   "permissions": [
     "storage",
@@ -11,10 +11,6 @@
   "host_permissions": [
     "https://www.faceit.com/*",
     "https://*.supabase.co/*"
-  ],
-  "optional_host_permissions": [
-    "http://*/*",
-    "https://*/*"
   ],
   "background": {
     "service_worker": "background.js",
