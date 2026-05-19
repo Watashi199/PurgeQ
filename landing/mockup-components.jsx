@@ -51,7 +51,7 @@ function PopupShell({ active, children, ownedCount = 6, isPro = true, bare }) {
   const tone = pct >= 90 ? '#ef4444' : pct >= 75 ? '#fbbf24' : '#22c55e';
 
   const popup = (
-    <div style={{width:560, height:600, background:'#0b0b0c', color:'#f5f5f7', border:'1px solid #25252a', borderRadius:8, overflow:'hidden', display:'flex', fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontSize:15, boxShadow:'0 24px 48px -12px rgba(0,0,0,0.6)'}}>
+    <div style={{width:780, height:600, background:'#0b0b0c', color:'#f5f5f7', border:'1px solid #25252a', borderRadius:8, overflow:'hidden', display:'flex', fontFamily:'-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontSize:15, boxShadow:'0 24px 48px -12px rgba(0,0,0,0.6)'}}>
 
       {/* ── Sidebar ── */}
       <aside style={{width:168, flexShrink:0, background:'#131316', borderRight:'1px solid #25252a', display:'flex', flexDirection:'column', padding:'16px 12px'}}>

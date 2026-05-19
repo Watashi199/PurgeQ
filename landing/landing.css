@@ -7,12 +7,13 @@ body {
   overflow-x: hidden;
   background-color: var(--bg-base);
   background-image:
-    radial-gradient(ellipse 70% 55% at 75% 28%, rgba(255, 85, 0, 0.14) 0%, transparent 60%),
-    linear-gradient(to right, var(--border-faint) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--border-faint) 1px, transparent 1px);
-  background-size: 100% 100vh, 56px 56px, 56px 56px;
-  background-repeat: no-repeat, repeat, repeat;
-  background-attachment: fixed, scroll, scroll;
+    radial-gradient(ellipse 80% 60% at 75% 25%, rgba(255, 85, 0, 0.22) 0%, transparent 62%),
+    radial-gradient(ellipse 45% 38% at 8% 90%, rgba(255, 60, 0, 0.09) 0%, transparent 55%),
+    linear-gradient(to right, rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 100% 100vh, 100% 100vh, 56px 56px, 56px 56px;
+  background-repeat: no-repeat, no-repeat, repeat, repeat;
+  background-attachment: fixed, fixed, scroll, scroll;
 }
 
 /* ---- Top bar ---- */
@@ -114,7 +115,7 @@ section {
 }
 .hero-grid {
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
+  grid-template-columns: 1fr 1.2fr;
   gap: 80px;
   align-items: center;
 }
@@ -182,26 +183,26 @@ section {
 /* ---- Hero visual ---- */
 .hero-visual {
   position: relative;
-  min-height: 620px;
+  min-height: 490px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 .hero-popup-mount {
   position: relative;
-  width: 560px;
+  width: 780px;
   height: 600px;
   filter: drop-shadow(0 32px 48px rgba(0,0,0,0.6)) drop-shadow(0 0 60px rgba(255,85,0,0.12));
-  transform-origin: center center;
+  zoom: 0.79;
 }
 @media (max-width: 1100px) {
-  .hero-popup-mount { transform: scale(0.82); }
+  .hero-popup-mount { zoom: 0.64; }
 }
 @media (max-width: 960px) {
-  .hero-popup-mount { transform: scale(1); }
+  .hero-popup-mount { zoom: 0.79; }
 }
 @media (max-width: 600px) {
-  .hero-popup-mount { transform: scale(0.78); }
+  .hero-popup-mount { zoom: 0.60; }
 }
 .hero-frame {
   position: absolute;
