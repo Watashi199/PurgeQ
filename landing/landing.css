@@ -97,9 +97,12 @@ section {
 /* ============ Hero ============ */
 .hero {
   position: relative;
-  padding: 56px 32px 140px;
-  max-width: 1280px;
-  margin: 0 auto;
+  min-height: 100vh;
+  padding: 80px 32px;
+  max-width: none;
+  margin: 0;
+  display: flex;
+  align-items: center;
   overflow: visible;
 }
 .hero::before {
@@ -115,9 +118,12 @@ section {
 }
 .hero-grid {
   display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: 80px;
+  grid-template-columns: 1fr 1.3fr;
+  gap: 72px;
   align-items: center;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 .hero-kicker {
   font-family: var(--font-mono);
@@ -183,23 +189,27 @@ section {
 /* ---- Hero visual ---- */
 .hero-visual {
   position: relative;
-  min-height: 490px;
+  min-height: 560px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
 }
 .hero-popup-mount {
   position: relative;
   width: 780px;
   height: 600px;
   filter: drop-shadow(0 32px 48px rgba(0,0,0,0.6)) drop-shadow(0 0 60px rgba(255,85,0,0.12));
-  zoom: 0.79;
+  zoom: 0.92;
+}
+@media (max-width: 1280px) {
+  .hero-popup-mount { zoom: 0.80; }
 }
 @media (max-width: 1100px) {
-  .hero-popup-mount { zoom: 0.64; }
+  .hero-popup-mount { zoom: 0.70; }
 }
 @media (max-width: 960px) {
-  .hero-popup-mount { zoom: 0.79; }
+  .hero-popup-mount { zoom: 0.82; }
 }
 @media (max-width: 600px) {
   .hero-popup-mount { zoom: 0.60; }
@@ -727,7 +737,7 @@ section {
   .topbar { padding: 14px 20px; }
   .topbar-nav { display: none; }
   section, .hero, .privacy, .cta-band, .footer { padding-left: 20px; padding-right: 20px; }
-  .hero { padding-top: 32px; padding-bottom: 96px; }
+  .hero { min-height: auto; padding-top: 80px; padding-bottom: 80px; }
   .hero-grid { grid-template-columns: 1fr; gap: 48px; }
   .hero-visual { min-height: 360px; }
   .how-steps { grid-template-columns: 1fr; }
